@@ -90,6 +90,7 @@ class GraphTransformer:
                     "source": row.get("source"),
                     "domain": domain,
                     "sub_category": row.get("sub_category"),
+                    "region": row.get("region"),
                     "timestamp": timestamp,
                     "timestamp_utc": timestamp,
                     "retrieved_at": retrieved_at,
@@ -98,6 +99,9 @@ class GraphTransformer:
                     "unit": row.get("unit"),
                     "raw_text": row.get("raw_text"),
                     "url": row.get("url"),
+                    # anomaly_flag: always present in Part B output (bool).
+                    "anomaly_flag": row.get("anomaly_flag"),
+                    "linked_event_id": row.get("linked_event_id"),
                     "source_file": record.source_file,
                     "source_line": record.line_number,
                     "loaded_at": utc_now_iso(),
@@ -182,6 +186,23 @@ class GraphTransformer:
                     self._relationship(record_node, "MENTIONS", entity_node, record_id, timestamp, confidence, severity),
                     self._relationship(event_node, "AFFECTS", entity_node, record_id, timestamp, confidence, severity),
                     self._relationship(entity_node, "EVIDENCED_BY", record_node, record_id, timestamp, confidence, severity),
+                ]
+            )
+
+        # NLP entities from the `entities` field emitted by the enrichment step.
+        # Each entry is {"text": "...", "label": "<spaCy NER label>"}.  This
+        # field is absent in domains that skip NLP enrichment (e.g. historical,
+        # inventory) — safe to iterate over an empty list.
+        for nlp_ent in row.get("entities") or []:
+            nlp_node = self._nlp_entity_node(nlp_ent, record_id, timestamp)
+            if nlp_node is None:
+                continue
+            nodes.append(nlp_node)
+            rels.extend(
+                [
+                    self._relationship(record_node, "MENTIONS", nlp_node, record_id, timestamp, confidence, severity),
+                    self._relationship(event_node, "AFFECTS", nlp_node, record_id, timestamp, confidence, severity),
+                    self._relationship(nlp_node, "EVIDENCED_BY", record_node, record_id, timestamp, confidence, severity),
                 ]
             )
 
@@ -372,6 +393,57 @@ class GraphTransformer:
                     "entity_type": entity_type,
                     "lat": geo_tag.get("lat"),
                     "lon": geo_tag.get("lon"),
+                    "valid_from": timestamp,
+                    "first_seen_at": timestamp,
+                    "record_ids": [record_id],
+                }
+            ),
+        )
+
+    # spaCy NER label → graph node label mapping.
+    # Only labels actually observed in Part B data are mapped; everything else
+    # falls through to ``Organization`` as a safe catch-all.
+    _SPACY_LABEL_TO_GRAPH_LABEL: dict[str, str] = {
+        "GPE": "Country",    # Geo-political entity (country / city / region)
+        "LOC": "Port",       # Non-GPE location (mountain, water body, etc.)
+        "FAC": "Terminal",   # Facility (airport, terminal, refinery)
+        "ORG": "Organization",
+        "PERSON": "Organization",  # individuals → generic org node
+        "NORP": "Organization",    # nationalities / religious / political groups
+    }
+
+    def _nlp_entity_node(
+        self, nlp_ent: dict[str, Any], record_id: str, timestamp: str | None
+    ) -> GraphNode | None:
+        """Build a graph node from a spaCy NER entity dict ``{text, label}``.
+
+        Returns ``None`` for entries with an empty or whitespace-only text
+        so the caller can safely skip them.
+        """
+        text = str(nlp_ent.get("text") or "").strip()
+        if not text:
+            return None
+        spacy_label = str(nlp_ent.get("label") or "").upper()
+        graph_label = self._SPACY_LABEL_TO_GRAPH_LABEL.get(spacy_label, "Organization")
+        # Look up gazetteer for enrichment; fall back gracefully when absent.
+        metadata = self.energy_entities.get(text, {}) or {}
+        gazetteer_type = str(metadata.get("type") or "").strip()
+        if gazetteer_type:
+            graph_label = ASSET_TYPE_TO_LABEL.get(slug(gazetteer_type), graph_label)
+        key_prop = NODE_KEY_PROPERTY[graph_label]
+        key_value = stable_id(slug(graph_label), [text])
+        return GraphNode(
+            label=graph_label,
+            key_property=key_prop,
+            key_value=key_value,
+            properties=compact_dict(
+                {
+                    "entity_key": key_value,
+                    "name": text,
+                    "canonical_name": text,
+                    "entity_type": spacy_label.lower() or "nlp_entity",
+                    "lat": metadata.get("lat"),
+                    "lon": metadata.get("lon"),
                     "valid_from": timestamp,
                     "first_seen_at": timestamp,
                     "record_ids": [record_id],

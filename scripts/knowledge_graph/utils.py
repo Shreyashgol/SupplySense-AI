@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Sequence, TypeVar
 
 T = TypeVar("T")
+
+LOGGER = logging.getLogger(__name__)
+
 
 
 def utc_now_iso() -> str:
@@ -32,12 +36,31 @@ def slug(value: Any) -> str:
 
 
 def parse_datetime(value: Any) -> str | None:
-    """Return a normalized ISO timestamp string when parsing succeeds."""
+    """Return a normalized ISO timestamp string when parsing succeeds.
+
+    Handles three formats emitted by Part B:
+    - Epoch-milliseconds integer (13 digits):  1752883200000
+    - Epoch-seconds integer (10 digits):        1752883200
+    - ISO-8601 string:                          "2025-07-19T00:00:00Z"
+    """
     if value is None:
         return None
+    # Handle numeric epoch values passed as int/float directly.
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        ms = float(value)
+        # Part B always uses milliseconds; values > 1e10 are ms-epoch.
+        if ms > 1e10:
+            ms /= 1000.0
+        return datetime.fromtimestamp(ms, tz=timezone.utc).isoformat()
     text = str(value).strip()
     if not text:
         return None
+    # Pure numeric string — epoch ms (13 digits) or epoch seconds (10 digits).
+    if text.lstrip("-").isdigit():
+        ms = float(text)
+        if ms > 1e10:
+            ms /= 1000.0
+        return datetime.fromtimestamp(ms, tz=timezone.utc).isoformat()
     try:
         normalized = text.replace("Z", "+00:00")
         return datetime.fromisoformat(normalized).isoformat()
@@ -70,22 +93,37 @@ def chunks(items: Sequence[T], size: int) -> Iterator[list[T]]:
         yield list(items[index : index + size])
 
 
-def read_jsonl(path: Path) -> Iterator[dict[str, Any]]:
-    """Yield JSON objects from a JSONL file."""
+def read_jsonl(path: Path) -> Iterator[tuple[dict[str, Any] | None, bool]]:
+    """Yield (row, ok) pairs from a JSONL file.
+
+    Malformed lines yield ``(None, False)`` so callers can count and log
+    skipped lines without aborting the rest of the file.
+    """
     with path.open("r", encoding="utf-8") as handle:
         for line_number, line in enumerate(handle, start=1):
             stripped = line.strip()
             if not stripped:
                 continue
             try:
-                yield json.loads(stripped)
+                yield json.loads(stripped), True
             except json.JSONDecodeError as exc:
-                raise ValueError(f"Invalid JSON in {path}:{line_number}: {exc}") from exc
+                LOGGER.warning(
+                    "Skipping malformed JSON at %s:%d — %s",
+                    path,
+                    line_number,
+                    exc,
+                )
+                yield None, False
 
 
 def list_jsonl_files(input_dir: Path) -> list[Path]:
-    """Return sorted JSONL files from an input directory."""
+    """Dynamically discover all Part B resolved JSONL files under *input_dir*.
+
+    Only files matching ``*_resolved.jsonl`` are returned so that transient
+    debug dumps or other JSONL artefacts in the same directory are not
+    accidentally ingested.
+    """
     if not input_dir.exists():
         return []
-    return sorted(input_dir.glob("*.jsonl"))
+    return sorted(input_dir.glob("*_resolved.jsonl"))
 

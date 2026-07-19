@@ -23,6 +23,16 @@ class ProcessedRecord:
         value = self.data.get("timestamp_utc")
         return str(value) if value else None
 
+    @property
+    def anomaly_flag(self) -> bool:
+        """Always-present Part B boolean flag marking anomalous readings."""
+        return bool(self.data.get("anomaly_flag", False))
+
+    @property
+    def linked_event_id(self) -> str | None:
+        """Cluster key propagated by Part B entity resolution."""
+        return self.data.get("linked_event_id") or None
+
 
 @dataclass(frozen=True)
 class GraphNode:

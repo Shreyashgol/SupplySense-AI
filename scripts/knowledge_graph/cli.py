@@ -35,14 +35,13 @@ def main() -> None:
     config = KnowledgeGraphConfig.from_env()
     LOGGER.info("Starting Temporal Knowledge Graph load from %s", config.input_dir)
     stats = KnowledgeGraphLoader(config).load(apply_schema=not args.skip_schema)
-    LOGGER.info("Knowledge Graph load complete: %s", stats)
     print(
-        "Knowledge Graph load complete: "
-        f"{stats['records']} records, {stats['nodes']} nodes, "
-        f"{stats['relationships']} relationships from {stats['files']} files."
+        f"Knowledge Graph load complete: {stats['files']} file(s), "
+        f"{stats['records_loaded']} records loaded, {stats['records_skipped']} skipped, "
+        f"{stats['nodes']} nodes merged, {stats['relationships']} relationships merged, "
+        f"elapsed {stats['elapsed_seconds']}s."
     )
 
 
 if __name__ == "__main__":
     main()
-

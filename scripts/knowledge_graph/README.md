@@ -96,23 +96,45 @@ data/processed/entity_resolved/*.jsonl
 
 ## Input Contract
 
-Expected Part B fields:
+Part C treats every `*_resolved.jsonl` file under `data/processed/entity_resolved/` as
+the immutable output of Part B.  Files are discovered dynamically via the
+`*_resolved.jsonl` glob; no paths are hardcoded.
 
-- `source`
-- `domain`
-- `sub_category`
-- `region`
-- `timestamp_utc`
-- `retrieved_at`
-- `raw_value`
-- `unit`
-- `raw_text`
-- `url`
-- `resolved_entities`
-- `geo_tags`
-- `linked_event_id`
-- `event_category`
-- `sentiment_score`
-- `urgency_score`
+### Always-present fields (every record in every domain)
 
-The loader accepts missing optional enrichment fields but requires source, domain, sub-category, timestamps, and raw text.
+| Field | Type | Notes |
+|---|---|---|
+| `source` | string | Data provider name (e.g. `"GDELT 2.0"`, `"US EIA"`) |
+| `domain` | string | Top-level domain (e.g. `"geopolitical"`, `"maritime_logistics"`) |
+| `sub_category` | string | Domain sub-type (e.g. `"conflict_event"`, `"utilization"`) |
+| `region` | string | Primary geographic scope |
+| `timestamp_utc` | int (epoch-ms) | Event timestamp in **milliseconds** since Unix epoch |
+| `retrieved_at` | int (epoch-ms) | Ingestion timestamp in **milliseconds** since Unix epoch |
+| `raw_value` | number or string | Raw numeric signal; may be a string in some domains |
+| `unit` | string | Unit of `raw_value` (e.g. `"GoldsteinScale"`, `"Percentage"`) |
+| `raw_text` | string | Human-readable description of the record |
+| `url` | string | Source URL |
+| `anomaly_flag` | bool | `true` when the record is flagged as anomalous by Part B |
+| `resolved_entities` | list[string] | Canonical entity names resolved by Part B (e.g. `["countries"]`) |
+| `geo_tags` | list[object] | Structured geographic annotations: `{name, type, lat, lon}` |
+| `linked_event_id` | string (UUID) | Cross-record cluster key assigned by Part B |
+
+### Optional NLP-enrichment fields (present only in NLP-enriched domains)
+
+These fields are **absent** in domains that skip the NLP step (e.g.
+`historical_resolved.jsonl`, `inventory_resolved.jsonl`).  The loader treats
+their absence as valid and does not skip such records.
+
+| Field | Type | Notes |
+|---|---|---|
+| `entities` | list[object] | spaCy NER results: `{text: str, label: str}` where label is a spaCy entity type (`GPE`, `ORG`, `LOC`, `FAC`, `PERSON`, `NORP`, …) |
+| `sentiment_score` | float | Sentiment polarity in [-1.0, 1.0] |
+| `urgency_score` | float | Urgency level in [0.0, 1.0] |
+| `event_category` | string | Normalised event type (e.g. `"general_update"`, `"policy_sanctions_change"`) |
+
+### Timestamp handling
+
+`timestamp_utc` and `retrieved_at` are **epoch-millisecond integers** (13
+digits).  The loader converts them to ISO-8601 UTC strings before storing in
+Neo4j (e.g. `1752883200000` → `"2025-07-19T00:00:00+00:00"`).
+
