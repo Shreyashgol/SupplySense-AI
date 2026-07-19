@@ -1,0 +1,69 @@
+military_escalation:
+  - attack
+  - strike
+  - missile
+  - drone
+  - war
+  - conflict
+  - bombing
+  - military
+  - invasion
+  - navy
+  - armed
+
+diplomatic_tension:
+  - sanction
+  - expel
+  - ambassador
+  - embargo
+  - blockade
+  - tension
+  - boycott
+  - dispute
+  - condemn
+
+shipping_anomaly:
+  - piracy
+  - hijack
+  - aground
+  - collision
+  - blocked
+  - transit
+  - closure
+  - detour
+  - reroute
+  - canal
+  - chokepoint
+
+price_volatility_spike:
+  - surge
+  - crash
+  - spike
+  - plunge
+  - jump
+  - volatile
+  - rally
+  - drop
+  - soar
+
+weather_extreme:
+  - hurricane
+  - cyclone
+  - flood
+  - freeze
+  - storm
+  - extreme
+  - typhoon
+  - earthquake
+  - disruption
+
+policy_sanctions_change:
+  - tariff
+  - duty
+  - quota
+  - mandate
+  - gazette
+  - decree
+  - regulation
+  - compliance
+  - policy

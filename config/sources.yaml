@@ -1,0 +1,206 @@
+financial:
+- description: Exchange rates for major currency pairs.
+  domain: financial
+  fetch_frequency: Daily
+  last_successful_run: '2026-07-19T10:00:00Z'
+  license: Free API (ECB rates)
+  name: Frankfurter API
+  official_url: https://api.frankfurter.app
+- description: Reserve Bank of India repo rate and 10-year yield.
+  domain: financial
+  fetch_frequency: Daily
+  license: Public Web Scraping
+  name: RBI DBIE Public Data
+  official_url: https://dbie.rbi.org.in/
+- description: Macroeconomic proxy indicators for trade finance (Trade % GDP, Interest
+    rate spread).
+  domain: financial
+  fetch_frequency: Daily
+  license: Open Data
+  name: World Bank Open Data API
+  official_url: https://api.worldbank.org/v2
+geopolitical:
+- description: Global event database tracking conflict and political instability.
+  domain: geopolitical
+  fetch_frequency: Every 6 hours
+  last_successful_run: '2026-07-19T10:00:00Z'
+  license: Open / Free
+  name: GDELT 2.0 Events API
+  official_url: https://www.gdeltproject.org/data.html#rawdatafiles
+- description: US Treasury Specially Designated Nationals sanctions list.
+  domain: geopolitical
+  fetch_frequency: Every 6 hours
+  license: Public Domain / U.S. Government
+  name: OFAC SDN Sanctions List
+  official_url: https://sanctionslist.ofac.treas.gov
+- description: Latest world news headlines from Reuters.
+  domain: geopolitical
+  fetch_frequency: Every 6 hours
+  license: Public RSS
+  name: Reuters World News RSS
+  official_url: https://www.reutersagency.com/feed/
+- description: Latest world news headlines from Associated Press.
+  domain: geopolitical
+  fetch_frequency: Every 6 hours
+  license: Public RSS
+  name: AP World News RSS
+  official_url: https://rsshub.app/apnews/topics/world-news
+historical:
+- description: De-duplicated daily snapshot of everything saved.
+  domain: historical
+  fetch_frequency: Daily
+  last_successful_run: '2026-07-19T10:00:00Z'
+  license: Internal
+  name: Local Daily Archiver
+  official_url: Local System
+- description: Historical commodity price dataset.
+  domain: historical
+  fetch_frequency: Monthly
+  license: Open Data
+  name: World Bank Pink Sheet
+  official_url: https://www.worldbank.org/en/research/commodity-markets
+- description: Historical event archive (5-year sample).
+  domain: historical
+  fetch_frequency: Monthly
+  license: Open Data
+  name: GDELT Historical Archive
+  official_url: https://www.gdeltproject.org/
+inventory:
+- description: India's Strategic Petroleum Reserve and PSU stock-level figures.
+  domain: inventory
+  fetch_frequency: Monthly
+  last_successful_run: '2026-07-19T10:00:00Z'
+  license: Public Data
+  name: PPAC Public Bulletins
+  official_url: https://ppac.gov.in
+- description: US EIA Weekly Petroleum Status Report (PET.WCESTUS1) as global inventory
+    proxy.
+  domain: inventory
+  fetch_frequency: Weekly
+  license: Open Data (with API key)
+  name: US EIA Open Data API (Inventory)
+  official_url: https://www.eia.gov/opendata/
+maritime_logistics:
+- description: Real-time vessel position tracking via WebSocket.
+  domain: maritime_logistics
+  fetch_frequency: Continuous (15-min aggregates)
+  last_successful_run: '2026-07-19T10:00:00Z'
+  license: Free Tier (with API key)
+  name: AISstream.io WebSocket API
+  official_url: https://aisstream.io
+- description: Public navigation circulars and advisories for Suez Canal.
+  domain: maritime_logistics
+  fetch_frequency: Every 15 mins
+  license: Public Web Scraping
+  name: Suez Canal Authority Advisories
+  official_url: https://www.suezcanal.gov.eg/English/Navigation/Pages/NavigationCirculars.aspx
+- description: Public advisories to shipping for Panama Canal.
+  domain: maritime_logistics
+  fetch_frequency: Every 15 mins
+  license: Public Web Scraping
+  name: Panama Canal Authority Advisories
+  official_url: https://pancanal.com/en/advisories-to-shipping/
+market:
+- description: Yahoo Finance API wrapper for crude, gas, and refined product futures.
+  domain: market
+  fetch_frequency: Daily
+  last_successful_run: '2026-07-19T10:00:00Z'
+  license: Public API wrapper
+  name: yfinance API
+  official_url: https://finance.yahoo.com/
+- description: U.S. Energy Information Administration API for Spot Prices (RBRTE/Dubai).
+  domain: market
+  fetch_frequency: Daily
+  last_successful_run: '2026-07-19T10:43:06.364443+00:00'
+  license: Open Data (with API key)
+  name: U.S. EIA Open Data API
+  official_url: https://www.eia.gov/opendata/
+- description: Baltic Dry Index headline number scraped from the official summary
+    page.
+  domain: market
+  fetch_frequency: Daily
+  last_successful_run: '2026-07-19T10:43:06.364443+00:00'
+  license: Public Web Data
+  name: Baltic Exchange Web Scraper
+  official_url: https://www.balticexchange.com/en/data-services/market-information0/bdi.html
+policy:
+- description: Press releases from the Ministry of Petroleum & Natural Gas.
+  domain: policy
+  fetch_frequency: Daily
+  last_successful_run: '2026-07-19T10:00:00Z'
+  license: Public Web Scraping
+  name: PIB (Press Information Bureau)
+  official_url: https://pib.gov.in
+- description: MoPNG official notifications and circulars.
+  domain: policy
+  fetch_frequency: Daily
+  license: Public Web Scraping
+  name: MoPNG Official
+  official_url: https://petroleum.nic.in
+- description: Directorate General of Foreign Trade policy notifications.
+  domain: policy
+  fetch_frequency: Daily
+  license: Public Web Scraping
+  name: DGFT Notifications
+  official_url: https://dgft.gov.in
+- description: e-Gazette petroleum-related entries.
+  domain: policy
+  fetch_frequency: Daily
+  license: Public Web Scraping
+  name: e-Gazette
+  official_url: https://egazette.gov.in
+procurement:
+- description: Public tender listings for crude/product procurement.
+  domain: procurement
+  fetch_frequency: Daily
+  last_successful_run: '2026-07-19T10:00:00Z'
+  license: Public Data
+  name: GeM Tenders
+  official_url: https://gem.gov.in
+- description: India crude oil import origin-country trade data.
+  domain: procurement
+  fetch_frequency: Monthly
+  license: Open Data
+  name: data.gov.in Crude Imports
+  official_url: https://data.gov.in
+refining_downstream:
+- description: India's refinery-wise crude throughput and product yield data.
+  domain: refining_downstream
+  fetch_frequency: Monthly
+  last_successful_run: '2026-07-19T10:00:00Z'
+  license: Public Data
+  name: PPAC Public Bulletins
+  official_url: https://ppac.gov.in
+- description: Financial results and capacity utilization data for IOCL, BPCL, HPCL,
+    RIL.
+  domain: refining_downstream
+  fetch_frequency: Quarterly
+  license: Public Corporate Disclosures
+  name: Corporate IR Portals
+  official_url: Mixed (iocl.com, bharatpetroleum.in, etc.)
+- description: US EIA Refinery Utilization Rate (PET.MOPUEUS2.M).
+  domain: refining_downstream
+  fetch_frequency: Monthly
+  license: Open Data (with API key)
+  name: US EIA Open Data API (Refining)
+  official_url: https://www.eia.gov/opendata/
+weather_climate:
+- description: 7-day forecasts and severe-weather flags for key chokepoints.
+  domain: weather_climate
+  fetch_frequency: Daily
+  last_successful_run: '2026-07-19T10:00:00Z'
+  license: Free open-source API
+  name: Open-Meteo API
+  official_url: https://open-meteo.com
+- description: ENSO (Oceanic Nino Index) and IOD (Indian Ocean Dipole) index values.
+  domain: weather_climate
+  fetch_frequency: Monthly
+  license: Public Domain
+  name: NOAA CPC
+  official_url: https://origin.cpc.ncep.noaa.gov
+- description: Public monsoon and cyclone bulletins.
+  domain: weather_climate
+  fetch_frequency: Daily
+  license: Public Web Scraping
+  name: IMD Mausam
+  official_url: https://mausam.imd.gov.in

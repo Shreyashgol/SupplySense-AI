@@ -1,0 +1,9 @@
+.env
+data/raw/
+data/processed/
+data/datalake/
+logs/
+*_debug.py
+*_test_scratch.py
+__pycache__/
+*.pyc

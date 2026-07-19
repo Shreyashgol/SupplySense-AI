@@ -1,0 +1,160 @@
+# Strategic Chokepoints
+Strait of Hormuz:
+  aliases: ["Hormuz", "Strait of Hormuz"]
+  lat: 26.5667
+  lon: 56.2500
+  type: chokepoint
+Bab-el-Mandeb:
+  aliases: ["Bab el-Mandeb", "Bab al-Mandab", "Red Sea Strait"]
+  lat: 12.5833
+  lon: 43.3333
+  type: chokepoint
+Suez Canal:
+  aliases: ["Suez", "Suez Canal"]
+  lat: 30.7050
+  lon: 32.3433
+  type: chokepoint
+Strait of Malacca:
+  aliases: ["Malacca", "Strait of Malacca"]
+  lat: 2.9000
+  lon: 101.2667
+  type: chokepoint
+Panama Canal:
+  aliases: ["Panama Canal", "Panama"]
+  lat: 9.1171
+  lon: -79.7366
+  type: chokepoint
+Cape of Good Hope:
+  aliases: ["Cape of Good Hope", "Cape of Storms"]
+  lat: -34.3581
+  lon: 18.4722
+  type: chokepoint
+Bosphorus Strait:
+  aliases: ["Bosphorus", "Bosporus", "Turkish Straits"]
+  lat: 41.2210
+  lon: 29.1126
+  type: chokepoint
+Danish Straits:
+  aliases: ["Danish Straits", "Oresund", "Great Belt"]
+  lat: 55.4056
+  lon: 10.9702
+  type: chokepoint
+
+# Indian Refineries & Energy Hubs
+Jamnagar Refinery:
+  aliases: ["Jamnagar", "Reliance Jamnagar", "RIL Jamnagar"]
+  lat: 22.3411
+  lon: 69.8394
+  type: refinery
+Paradip Refinery:
+  aliases: ["Paradip", "Paradip Refinery", "IOCL Paradip"]
+  lat: 20.2644
+  lon: 86.6667
+  type: refinery
+Kochi Refinery:
+  aliases: ["Kochi Refinery", "BPCL Kochi"]
+  lat: 9.9673
+  lon: 76.3534
+  type: refinery
+Mumbai Refinery:
+  aliases: ["Mumbai Refinery", "HPCL Mumbai", "BPCL Mumbai"]
+  lat: 19.0067
+  lon: 72.8992
+  type: refinery
+Vadinar Refinery:
+  aliases: ["Vadinar", "Nayara Vadinar"]
+  lat: 22.2858
+  lon: 69.7022
+  type: refinery
+Mangalore Refinery:
+  aliases: ["Mangalore Refinery", "MRPL"]
+  lat: 12.9814
+  lon: 74.8471
+  type: refinery
+Chennai Refinery:
+  aliases: ["Chennai Refinery", "CPCL Chennai", "Manali Refinery"]
+  lat: 13.1669
+  lon: 80.2676
+  type: refinery
+
+# Global Refineries & Terminals
+Ras Tanura:
+  aliases: ["Ras Tanura", "Aramco Ras Tanura"]
+  lat: 26.6575
+  lon: 50.1601
+  type: refinery
+Mina Al Ahmadi:
+  aliases: ["Mina Al Ahmadi", "Ahmadi Refinery"]
+  lat: 29.0747
+  lon: 48.1481
+  type: refinery
+Abadan Refinery:
+  aliases: ["Abadan", "Abadan Refinery"]
+  lat: 30.3422
+  lon: 48.2778
+  type: refinery
+Fujairah Port:
+  aliases: ["Fujairah", "Port of Fujairah"]
+  lat: 25.1768
+  lon: 56.3601
+  type: port
+Rotterdam Port:
+  aliases: ["Rotterdam", "Port of Rotterdam", "Europoort"]
+  lat: 51.9497
+  lon: 4.1458
+  type: port
+Houston Ship Channel:
+  aliases: ["Houston Ship Channel", "Houston Port", "Port of Houston"]
+  lat: 29.7402
+  lon: -95.0531
+  type: port
+LOOP Terminal:
+  aliases: ["LOOP", "Louisiana Offshore Oil Port"]
+  lat: 28.8850
+  lon: -90.0194
+  type: port
+Kharg Island:
+  aliases: ["Kharg Island", "Khark Island"]
+  lat: 29.2392
+  lon: 50.3161
+  type: port
+Corpus Christi:
+  aliases: ["Corpus Christi", "Port of Corpus Christi"]
+  lat: 27.8184
+  lon: -97.3999
+  type: port
+
+# Key Energy Companies & State Actors (no explicit geo needed, but useful for entity resolution)
+Saudi Aramco:
+  aliases: ["Aramco", "Saudi Aramco", "Saudi Arabian Oil Company"]
+  type: corporate
+ADNOC:
+  aliases: ["ADNOC", "Abu Dhabi National Oil Company"]
+  type: corporate
+Gazprom:
+  aliases: ["Gazprom", "PJSC Gazprom"]
+  type: corporate
+Rosneft:
+  aliases: ["Rosneft"]
+  type: corporate
+ONGC:
+  aliases: ["ONGC", "Oil and Natural Gas Corporation"]
+  type: corporate
+OPEC:
+  aliases: ["OPEC", "OPEC+", "Organization of the Petroleum Exporting Countries"]
+  type: corporate
+IOCL:
+  aliases: ["IOC", "Indian Oil", "Indian Oil Corporation"]
+  type: corporate
+BPCL:
+  aliases: ["BPCL", "Bharat Petroleum"]
+  type: corporate
+HPCL:
+  aliases: ["HPCL", "Hindustan Petroleum"]
+  type: corporate
+Reliance Industries:
+  aliases: ["Reliance", "RIL", "Reliance Industries Limited"]
+  type: corporate
+Nayara Energy:
+  aliases: ["Nayara", "Nayara Energy", "Essar Oil"]
+  type: corporate
