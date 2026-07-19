@@ -1,0 +1,25 @@
+# Energy Supply Chain Resilience System - Requirements
+
+# Core Data & Processing
+pandas==2.3.3
+duckdb==1.5.4
+PyYAML==6.0.3
+python-dotenv==1.0.1
+
+# Web Scraping & Ingestion
+requests==2.34.2
+beautifulsoup4==4.14.3
+websockets==16.1.1
+feedparser==6.0.12
+
+# Document & File Parsers
+openpyxl==3.1.5
+pdfplumber==0.11.9
+
+# Natural Language Processing (NLP)
+spacy==3.8.14
+nltk==3.10.0
+
+# Note: After installing these requirements, you must also download the required spaCy model and NLTK data:
+# python3 -m spacy download en_core_web_sm
+# python3 -m nltk.downloader vader_lexicon
