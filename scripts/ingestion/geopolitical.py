@@ -168,8 +168,9 @@ def fetch_ofac():
 def fetch_rss():
     logging.info("Starting RSS fetch...")
     feeds = [
-        ("Reuters World", "https://www.reutersagency.com/feed/"),
-        ("AP World", "https://rsshub.app/apnews/topics/world-news")
+        ("Crisis Group", "https://www.crisisgroup.org/en/rss.xml"),
+        ("BBC World", "http://feeds.bbci.co.uk/news/world/rss.xml"),
+        ("Al Jazeera", "https://www.aljazeera.com/xml/rss/all.xml")
     ]
     
     # Set a common user agent
@@ -197,7 +198,7 @@ def fetch_rss():
             logging.error(f"Failed to fetch RSS feed {name} at {url}: {e}")
             
     if all_records:
-        write_jsonl(all_records, domain='rss')
+        write_jsonl(all_records, domain='geopolitical')
     logging.info(f"RSS fetch complete. Saved {len(all_records)} records.")
 
 def main():

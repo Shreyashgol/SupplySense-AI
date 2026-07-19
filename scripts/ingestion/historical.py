@@ -95,7 +95,7 @@ def fetch_worldbank_pinksheet():
     records = []
     
     # The monthly pink sheet data URL (often static or redirects)
-    url = "https://thedocs.worldbank.org/en/doc/5d1033888d17a73f4e24294b6ceb61c5-0350012021/related/CMO-Historical-Data-Monthly.xlsx"
+    url = "https://thedocs.worldbank.org/en/doc/74e8be41ceb20fa0da750cda2f6b9e4e-0050012026/related/CMO-Historical-Data-Monthly.xlsx"
     resp = safe_request(url)
     
     if resp and resp.status_code == 200:
