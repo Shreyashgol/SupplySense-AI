@@ -9,7 +9,7 @@ from typing import Mapping
 
 
 BASE_DIR = Path(__file__).resolve().parents[2]
-SUPPORTED_NEO4J_URI_SCHEMES = ("neo4j://", "neo4j+s://", "bolt://", "bolt+s://")
+SUPPORTED_NEO4J_URI_SCHEMES = ("neo4j://", "neo4j+s://", "neo4j+ssc://", "bolt://", "bolt+s://", "bolt+ssc://")
 
 
 @dataclass(frozen=True)

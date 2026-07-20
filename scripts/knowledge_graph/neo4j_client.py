@@ -73,7 +73,7 @@ class Neo4jKnowledgeGraphClient:
                 )
             for label, rows in grouped.items():
                 key_property = NODE_KEY_PROPERTY[label]
-                cypher = Query(
+                cypher = (
                     f"""
                     UNWIND $rows AS row
                     MERGE (n:`{label}` {{`{key_property}`: row.key}})
@@ -107,7 +107,7 @@ class Neo4jKnowledgeGraphClient:
             for (start_label, rel_type, end_label), rows in grouped.items():
                 start_key = NODE_KEY_PROPERTY[start_label]
                 end_key = NODE_KEY_PROPERTY[end_label]
-                cypher = Query(
+                cypher = (
                     f"""
                     UNWIND $rows AS row
                     MATCH (a:`{start_label}` {{`{start_key}`: row.start_key}})
