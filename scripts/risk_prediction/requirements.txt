@@ -1,0 +1,20 @@
+# Part D – Risk Prediction
+# Pinned to a known-good set; bump versions in a separate PR after testing.
+
+# Neo4j (shared with Part C — same driver, separate client class)
+neo4j>=5.20,<6
+
+# ML stack
+xgboost>=2.0,<3          # preferred backend
+lightgbm>=4.0,<5         # first fallback
+scikit-learn>=1.4,<2     # guaranteed fallback + metrics + model selection
+
+# Data processing
+pandas>=2.1,<3
+numpy>=1.26,<3
+
+# Model persistence
+joblib>=1.3,<2
+
+# Explainability (optional — prediction still succeeds without SHAP)
+shap>=0.45; python_version >= "3.11"

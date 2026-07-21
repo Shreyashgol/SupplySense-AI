@@ -75,11 +75,59 @@ Then run:
 python -m scripts.knowledge_graph.cli
 ```
 
-To skip schema application:
+To skip schema application (e.g. on subsequent reruns when schema is already applied):
 
 ```bash
 python -m scripts.knowledge_graph.cli --skip-schema
 ```
+
+To change the log verbosity:
+
+```bash
+python -m scripts.knowledge_graph.cli --log-level DEBUG
+```
+
+### Sample terminal output
+
+```
+Knowledge Graph load complete: 6 file(s), 18432 records loaded, 3 skipped,
+94710 nodes merged, 312804 relationships merged, elapsed 47.83s.
+```
+
+## Logging & Observability
+
+All log output is written to both **stdout** and `logs/knowledge_graph.log`.
+
+Each run emits the following log events in order:
+
+| Event | Level | Description |
+|---|---|---|
+| Starting load | `INFO` | Input directory path |
+| Per-file start | `INFO` | Full path of each JSONL file being read |
+| Malformed JSON line | `WARNING` | File path + line number of every unparseable JSON line |
+| Invalid record | `WARNING` | File name + line number + validation error message |
+| Per-file summary | `INFO` | `Finished <file> — loaded N record(s), skipped M record(s).` |
+| Load complete | `INFO` | Files processed, records loaded, records skipped, nodes merged, relationships merged, elapsed seconds |
+
+### Stats dictionary returned by `KnowledgeGraphLoader.load()`
+
+| Key | Type | Description |
+|---|---|---|
+| `files` | `int` | Number of JSONL files discovered and processed |
+| `records_loaded` | `int` | Records that passed validation and were transformed |
+| `records_skipped` | `int` | Records dropped (malformed JSON + validation failures combined) |
+| `nodes` | `int` | Node upserts sent to Neo4j (via `MERGE`) |
+| `relationships` | `int` | Relationship upserts sent to Neo4j (via `MERGE`) |
+| `elapsed_seconds` | `float` | Wall-clock time for the full load, rounded to 2 decimal places |
+
+## Error Resilience
+
+The loader is designed to be **non-fatal on bad data**:
+
+- **Malformed JSON lines** — a single corrupt line in a JSONL file is logged as a `WARNING` and skipped; the rest of the file continues to load normally.
+- **Schema-invalid records** — records missing required fields (e.g. `source`, `domain`, `timestamp_utc`) are logged and skipped individually without stopping the run.
+- **Neo4j transient errors** — the client retries failed write transactions up to `KG_MAX_RETRIES` times with exponential backoff (`KG_RETRY_BACKOFF_SECONDS`).
+- **Idempotent reruns** — all writes use `MERGE`, and all schema statements use `IF NOT EXISTS`, so the loader is safe to rerun against an existing graph without creating duplicates.
 
 ## Data Flow
 
