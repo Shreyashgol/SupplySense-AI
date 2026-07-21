@@ -1,0 +1,97 @@
+import axios from "axios";
+import type {
+  AssetOption,
+  AuditLogEntry,
+  DecisionRunSummary,
+  ExecutiveActionPlan,
+  RiskAlertReport,
+  RoleInfo,
+  ScenarioComparisonResult,
+} from "../types";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+
+export const apiClient = axios.create({ baseURL: API_BASE_URL });
+
+let currentRole: string | null = null;
+export function setActiveRole(roleKey: string | null) {
+  currentRole = roleKey;
+}
+
+apiClient.interceptors.request.use((config) => {
+  if (currentRole) {
+    config.headers.set("X-Stakeholder-Role", currentRole);
+  }
+  return config;
+});
+
+export async function fetchRoles(): Promise<RoleInfo[]> {
+  const res = await apiClient.get<RoleInfo[]>("/api/v1/roles");
+  return res.data;
+}
+
+export async function fetchRiskAlerts(): Promise<RiskAlertReport> {
+  const res = await apiClient.get<RiskAlertReport>("/api/v1/risk-alerts");
+  return res.data;
+}
+
+export async function fetchDecisionRuns(limit = 20): Promise<{ decision_runs: DecisionRunSummary[]; count: number }> {
+  const res = await apiClient.get("/api/v1/decisions", { params: { limit } });
+  return res.data;
+}
+
+export async function fetchActionPlan(decisionRunId: string): Promise<ExecutiveActionPlan> {
+  const res = await apiClient.get<ExecutiveActionPlan>(
+    `/api/v1/decisions/${decisionRunId}/action-plan`
+  );
+  return res.data;
+}
+
+export async function fetchRecommendations(decisionRunId: string) {
+  const res = await apiClient.get(`/api/v1/decisions/${decisionRunId}/recommendations`);
+  return res.data;
+}
+
+export async function generateRecommendations(decisionRunId: string) {
+  const res = await apiClient.post(
+    `/api/v1/decisions/${decisionRunId}/recommendations/generate`,
+    { write_back: true }
+  );
+  return res.data;
+}
+
+export async function compareScenarios(scenarioIds: string[]): Promise<ScenarioComparisonResult> {
+  const res = await apiClient.post<ScenarioComparisonResult>("/api/v1/scenarios/compare", {
+    scenario_ids: scenarioIds,
+  });
+  return res.data;
+}
+
+export interface ScenarioPayload {
+  scenario_id: string;
+  name: string;
+  disruption_type: string;
+  duration_days: number;
+  affected_assets: string[];
+}
+
+export async function optimizeDecision(scenario: ScenarioPayload, topK?: number) {
+  const res = await apiClient.post("/api/v1/decisions/optimize", {
+    scenario,
+    top_k: topK,
+    write_back: true,
+  });
+  return res.data;
+}
+
+export async function searchAssets(q: string, limit = 15): Promise<AssetOption[]> {
+  const res = await apiClient.get<{ assets: AssetOption[] }>("/api/v1/assets", {
+    params: { q, limit },
+  });
+  return res.data.assets;
+}
+
+export async function fetchAuditLog(limit = 50): Promise<{ entries: AuditLogEntry[]; count: number }> {
+  const res = await apiClient.get("/api/v1/audit-log", { params: { limit } });
+  return res.data;
+}

@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0b0f17;
+  --color-surface: #121826;
+  --color-surface-border: rgba(255, 255, 255, 0.08);
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-background);
+  color: #e5e7eb;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+.panel {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: 0.75rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.badge-critical { background: rgba(239, 68, 68, 0.18); color: #f87171; }
+.badge-high { background: rgba(249, 115, 22, 0.18); color: #fb923c; }
+.badge-medium { background: rgba(234, 179, 8, 0.18); color: #facc15; }
+.badge-low { background: rgba(34, 197, 94, 0.18); color: #4ade80; }
+
+.badge-compliant { background: rgba(34, 197, 94, 0.18); color: #4ade80; }
+.badge-with_conditions { background: rgba(234, 179, 8, 0.18); color: #facc15; }
+.badge-blocked { background: rgba(239, 68, 68, 0.18); color: #f87171; }
+.badge-unknown { background: rgba(148, 163, 184, 0.18); color: #94a3b8; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }

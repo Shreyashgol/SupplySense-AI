@@ -1,0 +1,112 @@
+# Part H: Stakeholders / Users — role-based access matrix.
+#
+# Consumed by scripts/api/auth.py to enforce real server-side filtering (not
+# cosmetic UI hiding) of Part G outputs per stakeholder type from the
+# architecture diagram. Every request to scripts/api carries a
+# `X-Stakeholder-Role` header naming one of the keys below; unknown or
+# missing roles are rejected (see auth.py::resolve_role).
+#
+# Fields
+# ------
+# display_name           human-readable label shown in the frontend role switcher
+# organizations          example organizations for this role (from the architecture)
+# allowed_views           subset of: risk_alerts, action_plan, justified_recommendations,
+#                          scenario_comparison, audit_log
+# asset_label_scope        Neo4j asset labels this role's data is filtered to.
+#                          "*" means no filtering (full graph scope).
+# action_category_scope    Executive Action Plan categories this role sees.
+#                          "*" means all categories.
+# can_view_compliance_details   may see policy warnings/blockers (else status only)
+# can_view_financial_details    may see cost_index / economic_impact_index figures
+# can_generate_justifications   may trigger a new Groq justification call
+#                                (others only ever see previously cached rationale_text)
+# can_view_audit_log            may call the /audit endpoint
+
+roles:
+  policymaker:
+    display_name: "Policymaker"
+    organizations: ["MoPNG", "NITI Aayog", "MEA"]
+    allowed_views: ["risk_alerts", "action_plan", "justified_recommendations", "scenario_comparison", "audit_log"]
+    asset_label_scope: "*"
+    action_category_scope: "*"
+    can_view_compliance_details: true
+    can_view_financial_details: true
+    can_generate_justifications: true
+    can_view_audit_log: true
+
+  psu:
+    display_name: "PSU (Public Sector Undertaking)"
+    organizations: ["IOC", "BPCL", "HPCL", "GAIL"]
+    allowed_views: ["risk_alerts", "action_plan", "justified_recommendations"]
+    asset_label_scope: ["Refinery", "StorageTerminal", "Pipeline", "Supplier", "Commodity", "Port", "Terminal"]
+    action_category_scope: ["Procurement", "Inventory", "Logistics"]
+    can_view_compliance_details: true
+    can_view_financial_details: true
+    can_generate_justifications: true
+    can_view_audit_log: false
+
+  private_refiner:
+    display_name: "Private Refiner"
+    organizations: ["Reliance", "Nayara", "Others"]
+    allowed_views: ["risk_alerts", "action_plan", "justified_recommendations"]
+    asset_label_scope: ["Refinery", "Pipeline", "StorageTerminal", "Commodity"]
+    action_category_scope: ["Procurement", "Inventory", "Logistics"]
+    can_view_compliance_details: true
+    can_view_financial_details: true
+    can_generate_justifications: true
+    can_view_audit_log: false
+
+  strategic_planner:
+    display_name: "Strategic Planner & Analyst"
+    organizations: ["Strategic Planners & Analysts"]
+    allowed_views: ["risk_alerts", "action_plan", "justified_recommendations", "scenario_comparison"]
+    asset_label_scope: "*"
+    action_category_scope: "*"
+    can_view_compliance_details: true
+    can_view_financial_details: true
+    can_generate_justifications: true
+    can_view_audit_log: false
+
+  crisis_management:
+    display_name: "Crisis Management Team"
+    organizations: ["Crisis Management Teams"]
+    allowed_views: ["risk_alerts", "action_plan", "justified_recommendations"]
+    asset_label_scope: "*"
+    action_category_scope: "*"
+    can_view_compliance_details: true
+    can_view_financial_details: false
+    can_generate_justifications: true
+    can_view_audit_log: false
+
+  regulator:
+    display_name: "Regulator"
+    organizations: ["PPAC", "PNGRB", "CEA"]
+    allowed_views: ["risk_alerts", "action_plan", "justified_recommendations", "audit_log"]
+    asset_label_scope: "*"
+    action_category_scope: ["Policy"]
+    can_view_compliance_details: true
+    can_view_financial_details: false
+    can_generate_justifications: false
+    can_view_audit_log: true
+
+  ports_logistics_operator:
+    display_name: "Ports & Logistics Operator"
+    organizations: ["Ports & Logistics Operators"]
+    allowed_views: ["risk_alerts", "action_plan", "justified_recommendations"]
+    asset_label_scope: ["Port", "Terminal", "ShippingRoute", "Pipeline"]
+    action_category_scope: ["Logistics"]
+    can_view_compliance_details: true
+    can_view_financial_details: false
+    can_generate_justifications: true
+    can_view_audit_log: false
+
+  financial_institution:
+    display_name: "Financial Institution / Insurer"
+    organizations: ["Financial Institutions & Insurers"]
+    allowed_views: ["risk_alerts", "action_plan", "justified_recommendations", "scenario_comparison"]
+    asset_label_scope: "*"
+    action_category_scope: "*"
+    can_view_compliance_details: false
+    can_view_financial_details: true
+    can_generate_justifications: false
+    can_view_audit_log: false
