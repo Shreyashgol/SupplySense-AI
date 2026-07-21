@@ -6,6 +6,7 @@ import time
 import logging
 import argparse
 import importlib
+import importlib.util
 from datetime import datetime, timezone
 from pathlib import Path
 import re
@@ -40,7 +41,8 @@ ALL_DOMAINS = [
     'policy',
     'inventory',
     'refining_downstream',
-    'historical'
+    'historical',
+    'procurement'
 ]
 
 def count_domain_rows(domain):

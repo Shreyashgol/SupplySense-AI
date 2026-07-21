@@ -1,0 +1,8 @@
+# Part E - Scenario Simulation
+#
+# Part E intentionally adds no new runtime dependencies. It reuses:
+# - Neo4j client and graph feature extraction from scripts/risk_prediction
+# - Python standard library for deterministic simulation math and JSON I/O
+#
+# Install Part D requirements before running:
+# pip install -r scripts/risk_prediction/requirements.txt

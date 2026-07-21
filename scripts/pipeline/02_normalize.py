@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
+import re
 import json
 import yaml
 import logging
@@ -167,19 +168,23 @@ def normalize_domain(domain_dir, alias_map, fx_rates):
             df.at[idx, 'unit'] = unit
 
     # 4. Entity Resolution (Canonical forms)
+    # Build single-pass regex pattern for all aliases sorted by length descending
+    sorted_aliases = sorted(alias_map.keys(), key=len, reverse=True)
+    if sorted_aliases:
+        # Escape aliases and join with word boundaries
+        pattern = re.compile(r'\b(' + '|'.join(re.escape(a) for a in sorted_aliases) + r')\b', re.IGNORECASE)
+    else:
+        pattern = None
+
     def resolve_text(text):
-        if pd.isna(text) or not isinstance(text, str):
+        if pd.isna(text) or not isinstance(text, str) or not pattern:
             return text
-        # Simple word boundary replace (could be optimized with regex for exact words)
-        import re
-        res = text
-        # Sort by length descending to match longest phrases first
-        for alias in sorted(alias_map.keys(), key=len, reverse=True):
-            canonical = alias_map[alias]
-            # Word boundary regex, case insensitive
-            pattern = re.compile(r'\b' + re.escape(alias) + r'\b', re.IGNORECASE)
-            res = pattern.sub(canonical, res)
-        return res
+        
+        def replace_callback(match):
+            matched_alias = match.group(1).lower().strip()
+            return alias_map.get(matched_alias, match.group(1))
+            
+        return pattern.sub(replace_callback, text)
 
     if 'region' in df.columns:
         df['region'] = df['region'].apply(resolve_text)
