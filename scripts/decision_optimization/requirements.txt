@@ -1,0 +1,9 @@
+# Part F - Decision Intelligence and Optimization
+#
+# Part F adds no new third-party runtime dependencies. It reuses:
+# - Part E scenario simulation
+# - Part D Neo4j graph access and risk features
+# - Python standard library for deterministic optimization and JSON I/O
+#
+# Install Part D requirements before running:
+# pip install -r scripts/risk_prediction/requirements.txt
