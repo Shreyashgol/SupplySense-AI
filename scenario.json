@@ -1,0 +1,7 @@
+{
+  "scenario_id": "hormuz_closure_7d",
+  "name": "Hormuz closure - 7 days",
+  "disruption_type": "strait_closure",
+  "duration_days": 7,
+  "affected_assets": ["shippingroute_3bd6d0002385eb0842fd5039"]
+}
