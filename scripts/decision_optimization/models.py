@@ -44,6 +44,8 @@ class Recommendation:
     confidence: float
     policy_validation: PolicyValidation
     rationale: dict[str, float] = field(default_factory=dict)
+    rationale_text: str | None = None
+    is_ambiguous: bool = False
 
     def summary(self) -> dict[str, Any]:
         return {
@@ -66,6 +68,8 @@ class Recommendation:
             "rationale": {
                 key: round(value, 4) for key, value in self.rationale.items()
             },
+            "rationale_text": self.rationale_text,
+            "is_ambiguous": self.is_ambiguous,
         }
 
 

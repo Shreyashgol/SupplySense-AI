@@ -27,6 +27,7 @@ class DecisionOptimizationConfig:
     time_penalty_weight: float
     compliance_penalty_weight: float
     log_level: str
+    groq_api_key: str | None
 
     @classmethod
     def from_env(cls) -> "DecisionOptimizationConfig":
@@ -46,6 +47,7 @@ class DecisionOptimizationConfig:
                 env.get("DO_COMPLIANCE_PENALTY_WEIGHT", "0.18")
             ),
             log_level=env.get("DO_LOG_LEVEL", scenario_config.log_level),
+            groq_api_key=env.get("GROQ_API_KEY"),
         )
 
     def validate(self) -> None:

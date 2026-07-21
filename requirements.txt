@@ -23,3 +23,7 @@ nltk==3.10.0
 # Note: After installing these requirements, you must also download the required spaCy model and NLTK data:
 # python3 -m spacy download en_core_web_sm
 # python3 -m nltk.downloader vader_lexicon
+groq==0.13.1
+pytest
+pytest-asyncio
+httpx
