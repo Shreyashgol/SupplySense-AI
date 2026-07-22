@@ -40,6 +40,7 @@ class StakeholderRole:
     can_view_financial_details: bool
     can_generate_justifications: bool
     can_view_audit_log: bool
+    can_trigger_data_refresh: bool
 
     def allows_view(self, view: str) -> bool:
         return view in self.allowed_views
@@ -92,5 +93,6 @@ def load_roles(path: Path | None = None) -> dict[str, StakeholderRole]:
             can_view_financial_details=bool(entry.get("can_view_financial_details", False)),
             can_generate_justifications=bool(entry.get("can_generate_justifications", False)),
             can_view_audit_log=bool(entry.get("can_view_audit_log", False)),
+            can_trigger_data_refresh=bool(entry.get("can_trigger_data_refresh", False)),
         )
     return roles

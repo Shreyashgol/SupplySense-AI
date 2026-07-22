@@ -46,10 +46,12 @@ from .models import (
     DecisionOptimizeRequest,
     HealthResponse,
     JustifyRequest,
+    QuickActionPlanRequest,
     RoleInfo,
     ScenarioCompareRequest,
     ScenarioSimulateRequest,
 )
+from .pipeline_runner import refresh_manager
 from .roles import StakeholderRole
 
 LOGGER = logging.getLogger(__name__)
@@ -126,6 +128,7 @@ def create_app() -> FastAPI:
                 can_view_financial_details=r.can_view_financial_details,
                 can_generate_justifications=r.can_generate_justifications,
                 can_view_audit_log=r.can_view_audit_log,
+                can_trigger_data_refresh=r.can_trigger_data_refresh,
             )
             for r in roles.values()
         ]
@@ -220,6 +223,52 @@ def create_app() -> FastAPI:
 
         _audit(req, role, "view_risk_alerts", None, "success", f"{payload['alert_count']} alerts")
         return payload
+
+    @app.post("/api/v1/risk-alerts/quick-plan")
+    async def quick_action_plan_from_alert(
+        request: QuickActionPlanRequest,
+        req: Request,
+        role: StakeholderRole = Depends(auth.resolve_role),
+    ):
+        """Bridge a real-time risk alert straight into a Part E+F decision run.
+
+        Early Risk Alerts read Part D directly and need no scenario. Part F's
+        optimizer requires a ScenarioSimulationResult, which needs a
+        disruption_type/duration that a bare risk_score does not carry — so
+        this endpoint derives a reasonable default scenario for the one
+        flagged asset and runs the normal Part E+F pipeline against it,
+        closing the gap between "this asset is CRITICAL" and "here is an
+        action plan for it" without requiring a hand-built what-if scenario.
+        """
+        auth.check_view(role, "action_plan")
+        try:
+            scenario = ScenarioInput.from_dict(
+                {
+                    "scenario_id": f"autogen_{uuid.uuid4().hex[:12]}",
+                    "name": f"Auto plan: {request.asset_name} ({request.horizon_days}d)",
+                    "disruption_type": _infer_disruption_type(request.asset_label),
+                    "duration_days": request.horizon_days,
+                    "affected_assets": [request.asset_id],
+                }
+            )
+            do_config = req.app.state.ro_config.decision_config
+            client: RiskPredictionNeo4jClient = req.app.state.client
+            scenario_repo = ScenarioSimulationRepository(do_config.scenario_config, client)
+            simulation = _simulate_scenario(do_config, scenario, scenario_repo)
+
+            optimizer = DecisionOptimizer(do_config)
+            decision_result = optimizer.optimize(simulation)
+
+            scenario_repo.write_result(simulation)
+            DecisionOptimizationRepository(client).write_result(decision_result)
+
+            _audit(
+                req, role, "quick_action_plan_from_alert", request.asset_id,
+                "success", f"decision_run_id={decision_result.decision_run_id}",
+            )
+            return {"decision": decision_result.summary()}
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     # ── Part G: Executive Action Plan ────────────────────────────────────────
 
@@ -346,6 +395,30 @@ def create_app() -> FastAPI:
         )
         return payload
 
+    # ── System refresh (Parts A->B->C->D data refresh chain) ─────────────────
+
+    @app.get("/api/v1/system/refresh")
+    async def get_refresh_status(role: StakeholderRole = Depends(auth.resolve_role)):
+        """Any authenticated role may check refresh status (read-only)."""
+        return refresh_manager.status()
+
+    @app.post("/api/v1/system/refresh")
+    async def start_refresh(
+        req: Request,
+        role: StakeholderRole = Depends(auth.resolve_role),
+    ):
+        if not role.can_trigger_data_refresh:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Role '{role.role_key}' may not trigger a data refresh.",
+            )
+        started = refresh_manager.start(triggered_by=role.role_key)
+        if not started:
+            _audit(req, role, "trigger_data_refresh", None, "already_running", "")
+            raise HTTPException(status_code=409, detail="A data refresh is already running.")
+        _audit(req, role, "trigger_data_refresh", None, "started", "")
+        return refresh_manager.status()
+
     # ── Part H: Audit & Explainability ───────────────────────────────────────
 
     @app.get("/api/v1/audit-log")
@@ -391,6 +464,21 @@ def _audit(
         repository.write_audit_log(entry)
     except Exception as exc:  # noqa: BLE001
         LOGGER.warning("Failed to write audit log entry: %s", exc)
+
+
+_DISRUPTION_TYPE_BY_ASSET_LABEL: dict[str, str] = {
+    "ShippingRoute": "strait_closure",
+    "Port": "port_congestion",
+    "Terminal": "port_congestion",
+    "Refinery": "refinery_outage",
+    "Pipeline": "refinery_outage",
+    "Supplier": "sanctions",
+}
+
+
+def _infer_disruption_type(asset_label: str) -> str:
+    """Best-guess disruption_type for a quick action plan, from asset type alone."""
+    return _DISRUPTION_TYPE_BY_ASSET_LABEL.get(asset_label, "generic")
 
 
 def _simulate_scenario(do_config: DecisionOptimizationConfig, scenario: ScenarioInput, repo: ScenarioSimulationRepository):

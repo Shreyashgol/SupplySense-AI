@@ -21,6 +21,9 @@
 # can_generate_justifications   may trigger a new Groq justification call
 #                                (others only ever see previously cached rationale_text)
 # can_view_audit_log            may call the /audit endpoint
+# can_trigger_data_refresh       may start the Part A->B->C->D data-refresh chain
+#                                (pulls fresh source data, rebuilds the graph,
+#                                and recomputes risk scores)
 
 roles:
   policymaker:
@@ -33,6 +36,7 @@ roles:
     can_view_financial_details: true
     can_generate_justifications: true
     can_view_audit_log: true
+    can_trigger_data_refresh: true
 
   psu:
     display_name: "PSU (Public Sector Undertaking)"
@@ -44,6 +48,7 @@ roles:
     can_view_financial_details: true
     can_generate_justifications: true
     can_view_audit_log: false
+    can_trigger_data_refresh: false
 
   private_refiner:
     display_name: "Private Refiner"
@@ -55,6 +60,7 @@ roles:
     can_view_financial_details: true
     can_generate_justifications: true
     can_view_audit_log: false
+    can_trigger_data_refresh: false
 
   strategic_planner:
     display_name: "Strategic Planner & Analyst"
@@ -66,6 +72,7 @@ roles:
     can_view_financial_details: true
     can_generate_justifications: true
     can_view_audit_log: false
+    can_trigger_data_refresh: true
 
   crisis_management:
     display_name: "Crisis Management Team"
@@ -77,6 +84,7 @@ roles:
     can_view_financial_details: false
     can_generate_justifications: true
     can_view_audit_log: false
+    can_trigger_data_refresh: true
 
   regulator:
     display_name: "Regulator"
@@ -88,6 +96,7 @@ roles:
     can_view_financial_details: false
     can_generate_justifications: false
     can_view_audit_log: true
+    can_trigger_data_refresh: false
 
   ports_logistics_operator:
     display_name: "Ports & Logistics Operator"
@@ -99,6 +108,7 @@ roles:
     can_view_financial_details: false
     can_generate_justifications: true
     can_view_audit_log: false
+    can_trigger_data_refresh: false
 
   financial_institution:
     display_name: "Financial Institution / Insurer"
@@ -110,3 +120,4 @@ roles:
     can_view_financial_details: true
     can_generate_justifications: false
     can_view_audit_log: false
+    can_trigger_data_refresh: false

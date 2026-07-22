@@ -22,6 +22,7 @@ class RoleInfo(BaseModel):
     can_view_financial_details: bool
     can_generate_justifications: bool
     can_view_audit_log: bool
+    can_trigger_data_refresh: bool
 
 
 class ScenarioSimulateRequest(BaseModel):
@@ -43,3 +44,12 @@ class ScenarioCompareRequest(BaseModel):
 
 class JustifyRequest(BaseModel):
     write_back: bool = True
+
+
+class QuickActionPlanRequest(BaseModel):
+    """Auto-build a scenario for one at-risk asset straight from a risk alert."""
+
+    asset_id: str
+    asset_label: str
+    asset_name: str
+    horizon_days: int = Field(7, ge=1, description="Alert horizon the user was viewing (7/14/30).")

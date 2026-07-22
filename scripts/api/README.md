@@ -33,7 +33,28 @@ given view get `403`.
 | GET | `/api/v1/decisions/{id}/recommendations` | G | Recommendations + any cached rationale |
 | POST | `/api/v1/decisions/{id}/recommendations/generate` | G | Groq-generates and persists rationale (requires `can_generate_justifications`) |
 | POST | `/api/v1/scenarios/compare` | G | Scenario comparison / what-if |
+| GET | `/api/v1/assets` | - | Asset name search for the scenario-builder picker |
+| GET | `/api/v1/system/refresh` | A-D | Data-refresh chain status (any role) |
+| POST | `/api/v1/system/refresh` | A-D | Start the Part A→B→C→D data-refresh chain (requires `can_trigger_data_refresh`) |
 | GET | `/api/v1/audit-log` | H | Requires `can_view_audit_log` |
+
+## Data refresh chain (`pipeline_runner.py`)
+
+`POST /api/v1/system/refresh` runs the existing, unmodified Parts A-D CLI
+scripts as real OS subprocesses, sequentially, on a background thread:
+
+1. `scripts/ingestion/run_all_sources.py` — pull fresh source data (Part A)
+2. `python -m scripts.pipeline.run_pipeline` — normalize/dedup/NLP/store (Part B)
+3. `python -m scripts.knowledge_graph.cli` — load into Neo4j (Part C)
+4. `python -m scripts.risk_prediction.cli --predict --write-back` — refresh
+   `RiskAssessment` scores that Part G's Early Risk Alerts read (Part D)
+
+These scripts call `sys.exit()` and do their own file logging, so they are
+launched as subprocesses rather than imported — importing them would kill
+the whole API process on completion/failure. Only one refresh can run at a
+time (`409` if already running); combined output is written to
+`logs/system_refresh_<timestamp>.log` and progress is exposed via `GET
+/api/v1/system/refresh` for the frontend to poll every 3s.
 
 ## Part H enforcement (`auth.py`)
 
