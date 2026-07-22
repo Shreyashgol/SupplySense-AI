@@ -10,6 +10,7 @@ export function PerformancePanel() {
   const [loading, setLoading] = useState(false);
 
   const load = () => {
+    if (!activeRole) return;
     setLoading(true);
     fetchPerformance()
       .then(setStats)

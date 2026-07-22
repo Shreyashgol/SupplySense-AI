@@ -14,10 +14,12 @@ export function ScenarioComparisonView() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!activeRole) return;
     fetchDecisionRuns(30)
       .then((data) => setRuns(data.decision_runs))
       .finally(() => setRunsLoading(false));
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRole?.role_key]);
 
   // Field redaction depends on role — drop any previously-computed
   // comparison so a role switch never shows another role's view of the data.

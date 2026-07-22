@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ListTree, Loader2, RefreshCw } from "lucide-react";
 import { fetchDecisionRuns } from "../api/client";
+import { useRole } from "../context/RoleContext";
 import type { DecisionRunSummary } from "../types";
 
 interface Props {
@@ -10,10 +11,12 @@ interface Props {
 }
 
 export function DecisionRunPicker({ selected, onSelect, refreshKey }: Props) {
+  const { activeRole } = useRole();
   const [runs, setRuns] = useState<DecisionRunSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = () => {
+    if (!activeRole) return;
     setLoading(true);
     fetchDecisionRuns(30)
       .then((data) => {
@@ -26,7 +29,7 @@ export function DecisionRunPicker({ selected, onSelect, refreshKey }: Props) {
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(load, [refreshKey]);
+  useEffect(load, [refreshKey, activeRole?.role_key]);
 
   return (
     <div className="panel p-4">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, RefreshCw, TestTube2 } from "lucide-react";
 import { fetchDetectionAccuracy } from "../api/client";
+import { useRole } from "../context/RoleContext";
 import type { DetectionAccuracyReport, DetectorMetrics } from "../types";
 
 function pct(value: number | null): string {
@@ -25,11 +26,13 @@ function DetectorRow({ metrics, highlight }: { metrics: DetectorMetrics; highlig
 }
 
 export function DetectionAccuracyView() {
+  const { activeRole } = useRole();
   const [report, setReport] = useState<DetectionAccuracyReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = () => {
+    if (!activeRole) return;
     setLoading(true);
     setError(null);
     fetchDetectionAccuracy()
@@ -38,7 +41,8 @@ export function DetectionAccuracyView() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(load, [activeRole?.role_key]);
 
   return (
     <div className="panel p-5">

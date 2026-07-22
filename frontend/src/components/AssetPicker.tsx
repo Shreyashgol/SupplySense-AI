@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import { searchAssets } from "../api/client";
+import { useRole } from "../context/RoleContext";
 import type { AssetOption } from "../types";
 
 interface Props {
@@ -9,12 +10,14 @@ interface Props {
 }
 
 export function AssetPicker({ selected, onChange }: Props) {
+  const { activeRole } = useRole();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<AssetOption[]>([]);
   const [open, setOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (!activeRole) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       searchAssets(query, 15)
@@ -24,7 +27,7 @@ export function AssetPicker({ selected, onChange }: Props) {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query]);
+  }, [query, activeRole?.role_key]);
 
   const add = (asset: AssetOption) => {
     if (!selected.some((a) => a.asset_id === asset.asset_id)) {

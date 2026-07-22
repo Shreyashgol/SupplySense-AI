@@ -30,6 +30,12 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         if (initial) {
           setActiveRoleState(initial);
           setActiveRole(initial.role_key);
+        } else {
+          // No roles came back at all — leaving loading=false with no active
+          // role would let every child component mount and fire requests
+          // with no X-Stakeholder-Role header. Surface it as an error instead
+          // of silently proceeding.
+          setError("The API returned no stakeholder roles. Check config/stakeholder_roles.yaml.");
         }
       })
       .catch(() => setError("Could not reach the SupplySense-AI API. Is scripts.api.main running?"))

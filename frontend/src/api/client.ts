@@ -22,9 +22,24 @@ export function setActiveRole(roleKey: string | null) {
   currentRole = roleKey;
 }
 
+// Endpoints that intentionally don't require a resolved role (used to bootstrap
+// the role switcher itself before any role is known).
+const PUBLIC_PATHS = ["/health", "/api/v1/roles"];
+
 apiClient.interceptors.request.use((config) => {
+  const isPublic = PUBLIC_PATHS.some((path) => config.url?.startsWith(path));
   if (currentRole) {
     config.headers.set("X-Stakeholder-Role", currentRole);
+  } else if (!isPublic) {
+    // Fail fast on the client with a clear message instead of silently
+    // sending the request without the header and surfacing a confusing
+    // "Field required" 422 from the server. This should only trip if a
+    // component fetches before RoleContext has resolved a role — every
+    // component's initial fetch is expected to guard on that (see
+    // useRole().activeRole being non-null) before calling into this client.
+    return Promise.reject(
+      new Error(`Blocked ${config.url}: no stakeholder role resolved yet.`)
+    );
   }
   return config;
 });

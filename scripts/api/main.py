@@ -32,9 +32,13 @@ from scripts.decision_optimization.config import DecisionOptimizationConfig
 from scripts.decision_optimization.engine import DecisionOptimizer
 from scripts.decision_optimization.repository import DecisionOptimizationRepository
 from scripts.risk_prediction.baseline_comparison import compare_compound_vs_single_sensor
+from scripts.risk_prediction.config import RiskPredictionConfig
+from scripts.risk_prediction.dataset import RiskDatasetBuilder
 from scripts.risk_prediction.feature_extractor import GraphFeatureExtractor
+from scripts.risk_prediction.models import AssetFeatures
 from scripts.risk_prediction.neo4j_client import RiskPredictionNeo4jClient
 from scripts.risk_prediction.predictor import RiskPredictor
+from scripts.risk_prediction.trainer import RiskModelTrainer
 from scripts.scenario_simulation.models import ScenarioInput
 from scripts.scenario_simulation.repository import ScenarioSimulationRepository
 
@@ -532,17 +536,22 @@ def create_app() -> FastAPI:
         client: RiskPredictionNeo4jClient = req.app.state.client
         ro_config = req.app.state.ro_config
         risk_config = ro_config.decision_config.scenario_config.risk_config
+        extractor = GraphFeatureExtractor(risk_config, client)
+        features = extractor.extract_all()
+        predictor = RiskPredictor(risk_config)
         try:
-            extractor = GraphFeatureExtractor(risk_config, client)
-            features = extractor.extract_all()
+            result = predictor.predict(features, client, write_back=False)
+        except FileNotFoundError:
+            # Self-heal: `models/` is gitignored, so a fresh deployment has no
+            # artifact yet. Training this dataset takes well under a second
+            # (see scripts/risk_prediction/trainer.py), so it's cheap to do
+            # inline here rather than fail the request and require an operator
+            # to shell into the container and run --train manually.
+            LOGGER.info("No trained risk model found; training one now (first request after deploy).")
+            _train_model_inline(risk_config, features)
             predictor = RiskPredictor(risk_config)
             result = predictor.predict(features, client, write_back=False)
-            return compare_compound_vs_single_sensor(features, result.assessments, risk_config)
-        except FileNotFoundError as exc:
-            raise HTTPException(
-                status_code=503,
-                detail=f"No trained risk model yet — run --train first. ({exc})",
-            ) from exc
+        return compare_compound_vs_single_sensor(features, result.assessments, risk_config)
 
     return app
 
@@ -621,6 +630,14 @@ def _attach_alternates(rec: dict, finder: AlternateFinder) -> dict:
     alternatives = finder.find_alternates(rec["target_asset_id"], limit=3)
     rec["concrete_alternatives"] = [alt.summary() for alt in alternatives]
     return rec
+
+
+def _train_model_inline(risk_config: RiskPredictionConfig, features: list[AssetFeatures]) -> None:
+    """Train and persist a Part D model synchronously (see docstring at call site)."""
+    builder = RiskDatasetBuilder(risk_config)
+    train_df = builder.build(features, mode="training")
+    trainer = RiskModelTrainer(risk_config)
+    trainer.train(train_df)
 
 
 def _infer_disruption_type(asset_label: str) -> str:
