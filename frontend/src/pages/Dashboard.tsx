@@ -8,6 +8,7 @@ import { ExecutiveActionPlanBoard } from "../components/ExecutiveActionPlanBoard
 import { RecommendationsList } from "../components/RecommendationsList";
 import { ScenarioComparisonView } from "../components/ScenarioComparisonView";
 import { AuditLogPanel } from "../components/AuditLogPanel";
+import { SystemRefreshPanel } from "../components/SystemRefreshPanel";
 import { useRole } from "../context/RoleContext";
 
 type Tab = "action-plan" | "recommendations" | "comparison";
@@ -49,8 +50,15 @@ export function Dashboard() {
 
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <div className="lg:col-span-3 space-y-5">
+          <SystemRefreshPanel />
           <div className="h-[420px]">
-            <RiskAlertsPanel />
+            <RiskAlertsPanel
+              onPlanGenerated={(id) => {
+                setDecisionRunId(id);
+                setRefreshKey((k) => k + 1);
+                setTab("action-plan");
+              }}
+            />
           </div>
           <DecisionRunPicker selected={decisionRunId} onSelect={setDecisionRunId} refreshKey={refreshKey} />
           <ScenarioRunner

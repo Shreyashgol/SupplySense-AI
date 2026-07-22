@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, RefreshCw, ShieldAlert } from "lucide-react";
-import { fetchRiskAlerts } from "../api/client";
+import { AlertTriangle, ClipboardPlus, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
+import { fetchRiskAlerts, quickActionPlan } from "../api/client";
 import { useRole } from "../context/RoleContext";
 import type { RiskAlertReport } from "../types";
 
@@ -10,12 +10,17 @@ function tierClass(tier: string) {
   return `badge badge-${tier.toLowerCase()}`;
 }
 
-export function RiskAlertsPanel() {
+interface Props {
+  onPlanGenerated?: (decisionRunId: string) => void;
+}
+
+export function RiskAlertsPanel({ onPlanGenerated }: Props) {
   const { activeRole } = useRole();
   const [report, setReport] = useState<RiskAlertReport | null>(null);
   const [horizon, setHorizon] = useState(7);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
 
   const load = () => {
     if (!activeRole) return;
@@ -38,6 +43,19 @@ export function RiskAlertsPanel() {
     });
   }, [report, horizon]);
 
+  const generatePlan = async (assetId: string, assetLabel: string, assetName: string) => {
+    setGeneratingId(assetId);
+    setError(null);
+    try {
+      const data = await quickActionPlan(assetId, assetLabel, assetName, horizon);
+      onPlanGenerated?.(data.decision.decision_run_id);
+    } catch (e: any) {
+      setError(e?.response?.data?.detail ?? "Could not generate an action plan for this asset.");
+    } finally {
+      setGeneratingId(null);
+    }
+  };
+
   if (!activeRole?.allowed_views.includes("risk_alerts")) {
     return (
       <div className="panel p-6 h-full flex items-center justify-center text-sm text-gray-500">
@@ -45,6 +63,8 @@ export function RiskAlertsPanel() {
       </div>
     );
   }
+
+  const canGeneratePlan = activeRole?.allowed_views.includes("action_plan");
 
   return (
     <div className="panel p-5 flex flex-col h-full">
@@ -74,7 +94,7 @@ export function RiskAlertsPanel() {
         ))}
       </div>
 
-      {error && <div className="text-sm text-red-400">{error}</div>}
+      {error && <div className="text-sm text-red-400 mb-2">{error}</div>}
 
       <div className="flex-1 overflow-y-auto space-y-3 pr-1">
         {loading && <div className="text-sm text-gray-500">Loading…</div>}
@@ -83,6 +103,7 @@ export function RiskAlertsPanel() {
         )}
         {sorted.map((alert) => {
           const hp = alert.horizons.find((h) => h.horizon_days === horizon);
+          const isGenerating = generatingId === alert.asset_id;
           return (
             <div key={alert.asset_id} className="bg-white/5 border border-white/10 rounded-lg p-3">
               <div className="flex justify-between items-start gap-2">
@@ -99,6 +120,23 @@ export function RiskAlertsPanel() {
                 <span>P({horizon}d) = {hp ? (hp.probability * 100).toFixed(1) : "-"}%</span>
                 <span>base risk {alert.base_risk_tier} ({(alert.base_risk_score * 100).toFixed(0)}%)</span>
               </div>
+              {canGeneratePlan && (
+                <button
+                  onClick={() => generatePlan(alert.asset_id, alert.asset_label, alert.asset_name)}
+                  disabled={isGenerating}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 text-[11px] font-medium bg-white/5 hover:bg-white/10 border border-white/10 rounded-md py-1.5 text-gray-300 disabled:opacity-40 transition-colors"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 size={11} className="animate-spin" /> Building plan…
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardPlus size={11} /> Generate Action Plan
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           );
         })}

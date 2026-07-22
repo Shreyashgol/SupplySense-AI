@@ -7,6 +7,19 @@ export interface RoleInfo {
   can_view_financial_details: boolean;
   can_generate_justifications: boolean;
   can_view_audit_log: boolean;
+  can_trigger_data_refresh: boolean;
+}
+
+export interface RefreshStatus {
+  state: "idle" | "running" | "completed" | "failed";
+  current_stage: string | null;
+  stage_index: number;
+  stage_count: number;
+  started_at: string | null;
+  finished_at: string | null;
+  error: string | null;
+  log_file: string | null;
+  triggered_by: string | null;
 }
 
 export interface HorizonProbability {

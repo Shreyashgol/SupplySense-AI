@@ -4,6 +4,7 @@ import type {
   AuditLogEntry,
   DecisionRunSummary,
   ExecutiveActionPlan,
+  RefreshStatus,
   RiskAlertReport,
   RoleInfo,
   ScenarioComparisonResult,
@@ -89,6 +90,31 @@ export async function searchAssets(q: string, limit = 15): Promise<AssetOption[]
     params: { q, limit },
   });
   return res.data.assets;
+}
+
+export async function quickActionPlan(
+  assetId: string,
+  assetLabel: string,
+  assetName: string,
+  horizonDays: number
+) {
+  const res = await apiClient.post("/api/v1/risk-alerts/quick-plan", {
+    asset_id: assetId,
+    asset_label: assetLabel,
+    asset_name: assetName,
+    horizon_days: horizonDays,
+  });
+  return res.data;
+}
+
+export async function fetchRefreshStatus(): Promise<RefreshStatus> {
+  const res = await apiClient.get<RefreshStatus>("/api/v1/system/refresh");
+  return res.data;
+}
+
+export async function triggerRefresh(): Promise<RefreshStatus> {
+  const res = await apiClient.post<RefreshStatus>("/api/v1/system/refresh");
+  return res.data;
 }
 
 export async function fetchAuditLog(limit = 50): Promise<{ entries: AuditLogEntry[]; count: number }> {
