@@ -17,6 +17,9 @@ payload according to ``config/stakeholder_roles.yaml`` — see auth.py.
 from __future__ import annotations
 
 import logging
+import re
+import statistics
+import time
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -28,11 +31,15 @@ from fastapi.responses import JSONResponse
 from scripts.decision_optimization.config import DecisionOptimizationConfig
 from scripts.decision_optimization.engine import DecisionOptimizer
 from scripts.decision_optimization.repository import DecisionOptimizationRepository
+from scripts.risk_prediction.baseline_comparison import compare_compound_vs_single_sensor
+from scripts.risk_prediction.feature_extractor import GraphFeatureExtractor
 from scripts.risk_prediction.neo4j_client import RiskPredictionNeo4jClient
+from scripts.risk_prediction.predictor import RiskPredictor
 from scripts.scenario_simulation.models import ScenarioInput
 from scripts.scenario_simulation.repository import ScenarioSimulationRepository
 
 from scripts.recommendation_output.action_plan import ExecutiveActionPlanBuilder
+from scripts.recommendation_output.alternates import AlternateFinder, PROCUREMENT_ACTION_TYPES
 from scripts.recommendation_output.comparison import ScenarioComparator
 from scripts.recommendation_output.config import RecommendationOutputConfig
 from scripts.recommendation_output.horizon_alerts import HorizonRiskEngine
@@ -172,6 +179,7 @@ def create_app() -> FastAPI:
         req: Request,
         role: StakeholderRole = Depends(auth.resolve_role),
     ):
+        started_at = time.perf_counter()
         try:
             scenario = ScenarioInput.from_dict(request.scenario)
             do_config = req.app.state.ro_config.decision_config
@@ -188,8 +196,15 @@ def create_app() -> FastAPI:
                 scenario_repo.write_result(simulation)
                 DecisionOptimizationRepository(client).write_result(decision_result)
 
-            _audit(req, role, "run_decision_optimization", decision_result.decision_run_id, "success", "")
-            return {"decision": decision_result.summary()}
+            response_time_seconds = round(time.perf_counter() - started_at, 3)
+            _audit(
+                req, role, "run_decision_optimization", decision_result.decision_run_id,
+                "success", f"response_time_seconds={response_time_seconds}",
+            )
+            return {
+                "decision": decision_result.summary(),
+                "response_time_seconds": response_time_seconds,
+            }
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -241,6 +256,7 @@ def create_app() -> FastAPI:
         action plan for it" without requiring a hand-built what-if scenario.
         """
         auth.check_view(role, "action_plan")
+        started_at = time.perf_counter()
         try:
             scenario = ScenarioInput.from_dict(
                 {
@@ -262,11 +278,20 @@ def create_app() -> FastAPI:
             scenario_repo.write_result(simulation)
             DecisionOptimizationRepository(client).write_result(decision_result)
 
+            # This is the literal "signal to recommendation" metric: wall-clock
+            # time from a stakeholder clicking a risk alert to a ranked,
+            # policy-checked recommendation being written and returned.
+            response_time_seconds = round(time.perf_counter() - started_at, 3)
             _audit(
                 req, role, "quick_action_plan_from_alert", request.asset_id,
-                "success", f"decision_run_id={decision_result.decision_run_id}",
+                "success",
+                f"decision_run_id={decision_result.decision_run_id} "
+                f"response_time_seconds={response_time_seconds}",
             )
-            return {"decision": decision_result.summary()}
+            return {
+                "decision": decision_result.summary(),
+                "response_time_seconds": response_time_seconds,
+            }
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -289,8 +314,36 @@ def create_app() -> FastAPI:
         payload = plan.summary()
         payload["categories"] = auth.filter_categories_by_scope(payload["categories"], role)
 
+        finder = AlternateFinder(req.app.state.client)
+        for category in payload["categories"]:
+            category["recommendations"] = [
+                _attach_alternates(rec, finder) for rec in category["recommendations"]
+            ]
+
         _audit(req, role, "view_action_plan", decision_run_id, "success", "")
         return payload
+
+    @app.get("/api/v1/decisions/{decision_run_id}/assumptions")
+    async def get_scenario_assumptions(
+        decision_run_id: str,
+        req: Request,
+        role: StakeholderRole = Depends(auth.resolve_role),
+    ):
+        """Scenario model fidelity: every Part E assumption, tagged with
+        whether it was analyst-provided or graph-estimated, plus the exact
+        driver values used to estimate it — so the model's reasoning is
+        inspectable and testable, not just its output."""
+        auth.check_view(role, "action_plan")
+        repository: RecommendationOutputRepository = req.app.state.repository
+        assumptions = repository.fetch_scenario_assumptions(decision_run_id)
+        if assumptions is None:
+            _audit(req, role, "view_assumptions", decision_run_id, "not_found", "")
+            raise HTTPException(
+                status_code=404,
+                detail=f"No scenario simulation found for decision run: {decision_run_id}",
+            )
+        _audit(req, role, "view_assumptions", decision_run_id, "success", "")
+        return assumptions
 
     # ── Part G: Policy-Compliant Recommendations (with justification) ───────
 
@@ -310,6 +363,7 @@ def create_app() -> FastAPI:
         cached = repository.fetch_cached_justifications(
             [rec.recommendation_id for rec in result.recommendations]
         )
+        finder = AlternateFinder(req.app.state.client)
         recommendations = []
         for rec in result.recommendations:
             payload = auth.redact_recommendation(rec.summary(), role)
@@ -319,6 +373,7 @@ def create_app() -> FastAPI:
                 payload["is_ambiguous"] = justification.get("is_ambiguous")
                 payload["generated_by"] = justification.get("generated_by")
                 payload["generated_at"] = justification.get("generated_at")
+            payload = _attach_alternates(payload, finder)
             recommendations.append(payload)
 
         _audit(req, role, "view_recommendations", decision_run_id, "success", "")
@@ -435,11 +490,91 @@ def create_app() -> FastAPI:
         )
         return {"entries": [dict(row["a"]) for row in rows], "count": len(rows)}
 
+    @app.get("/api/v1/system/performance")
+    async def get_performance(
+        req: Request,
+        role: StakeholderRole = Depends(auth.resolve_role),  # noqa: ARG001 — auth required, no role-specific data
+        limit: int = 200,
+    ):
+        """Aggregate end-to-end signal-to-recommendation latency (evaluation metric).
+
+        Reads response_time_seconds recorded by run_decision_optimization and
+        quick_action_plan_from_alert audit entries — real measured wall-clock
+        time from each request, not a synthetic figure.
+        """
+        client: RiskPredictionNeo4jClient = req.app.state.client
+        rows = client.run_read(
+            """
+            MATCH (a:AuditLogEntry)
+            WHERE a.action IN ['run_decision_optimization', 'quick_action_plan_from_alert']
+              AND a.detail CONTAINS 'response_time_seconds='
+            RETURN a.detail AS detail, a.action AS action
+            ORDER BY a.occurred_at DESC
+            LIMIT $limit
+            """,
+            {"limit": limit},
+        )
+        samples = _extract_response_times([row["detail"] for row in rows])
+        return {"sample_count": len(samples), **_latency_stats(samples)}
+
+    @app.get("/api/v1/system/detection-accuracy")
+    async def get_detection_accuracy(
+        req: Request,
+        role: StakeholderRole = Depends(auth.resolve_role),  # noqa: ARG001 — auth required, no role-specific data
+    ):
+        """Compound (fused multi-signal) model vs. single-sensor baselines.
+
+        See scripts/risk_prediction/baseline_comparison.py for the full
+        methodology and honesty caveats (ground truth is the same heuristic
+        label the model trains on; there is no dated historical backtest
+        because this graph's historical domain has too few dated samples).
+        """
+        client: RiskPredictionNeo4jClient = req.app.state.client
+        ro_config = req.app.state.ro_config
+        risk_config = ro_config.decision_config.scenario_config.risk_config
+        try:
+            extractor = GraphFeatureExtractor(risk_config, client)
+            features = extractor.extract_all()
+            predictor = RiskPredictor(risk_config)
+            result = predictor.predict(features, client, write_back=False)
+            return compare_compound_vs_single_sensor(features, result.assessments, risk_config)
+        except FileNotFoundError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail=f"No trained risk model yet — run --train first. ({exc})",
+            ) from exc
+
     return app
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+_RESPONSE_TIME_PATTERN = re.compile(r"response_time_seconds=([0-9.]+)")
+
+
+def _extract_response_times(details: list[str]) -> list[float]:
+    samples: list[float] = []
+    for detail in details:
+        match = _RESPONSE_TIME_PATTERN.search(detail or "")
+        if match:
+            samples.append(float(match.group(1)))
+    return samples
+
+
+def _latency_stats(samples: list[float]) -> dict[str, float | None]:
+    if not samples:
+        return {"mean_seconds": None, "median_seconds": None, "p95_seconds": None, "min_seconds": None, "max_seconds": None}
+    ordered = sorted(samples)
+    p95_index = min(int(len(ordered) * 0.95), len(ordered) - 1)
+    return {
+        "mean_seconds": round(statistics.mean(ordered), 3),
+        "median_seconds": round(statistics.median(ordered), 3),
+        "p95_seconds": round(ordered[p95_index], 3),
+        "min_seconds": round(ordered[0], 3),
+        "max_seconds": round(ordered[-1], 3),
+    }
 
 
 def _audit(
@@ -474,6 +609,18 @@ _DISRUPTION_TYPE_BY_ASSET_LABEL: dict[str, str] = {
     "Pipeline": "refinery_outage",
     "Supplier": "sanctions",
 }
+
+
+def _attach_alternates(rec: dict, finder: AlternateFinder) -> dict:
+    """Enrich spot_procurement/activate_alternate_supplier recs with real,
+    named, graph-backed alternate entities (see recommendation_output/alternates.py).
+    No-op for every other action type."""
+    if rec.get("action_type") not in PROCUREMENT_ACTION_TYPES:
+        return rec
+    rec = dict(rec)
+    alternatives = finder.find_alternates(rec["target_asset_id"], limit=3)
+    rec["concrete_alternatives"] = [alt.summary() for alt in alternatives]
+    return rec
 
 
 def _infer_disruption_type(asset_label: str) -> str:

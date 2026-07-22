@@ -12,6 +12,7 @@ from .graph_schema import (
     EVENT_CATEGORY_ORDER,
     NODE_KEY_PROPERTY,
 )
+from .geodata import resolve_country_centroid
 from .models import GraphBatch, GraphNode, GraphRelationship, ProcessedRecord
 from .utils import coerce_float, compact_dict, parse_datetime, slug, stable_id, utc_now_iso
 
@@ -335,6 +336,11 @@ class GraphTransformer:
         metadata = self.energy_entities.get(canonical, {}) or {}
         entity_type = str(metadata.get("type") or "organization")
         label = ASSET_TYPE_TO_LABEL.get(slug(entity_type), "Organization")
+        lat, lon = metadata.get("lat"), metadata.get("lon")
+        if lat is None and label == "Country":
+            centroid = resolve_country_centroid(canonical)
+            if centroid:
+                lat, lon = centroid
         return GraphNode(
             label=label,
             key_property=NODE_KEY_PROPERTY[label],
@@ -346,8 +352,8 @@ class GraphTransformer:
                     "canonical_name": canonical,
                     "entity_type": entity_type,
                     "aliases": metadata.get("aliases"),
-                    "lat": metadata.get("lat"),
-                    "lon": metadata.get("lon"),
+                    "lat": lat,
+                    "lon": lon,
                     "valid_from": timestamp,
                     "first_seen_at": timestamp,
                     "record_ids": [record_id],
@@ -360,6 +366,11 @@ class GraphTransformer:
             return None
         name = str(region).strip()
         label = "Country" if "," not in name and len(name.split()) <= 3 else "Port"
+        # Geospatial evidence: resolve a real centroid whenever the region
+        # text names (or embeds) a known country, e.g. "Kyiv, Kyyiv, Misto,
+        # Ukraine" -> Ukraine's centroid. Left as None (never fabricated)
+        # when nothing resolves — see geodata.py for the matching rules.
+        centroid = resolve_country_centroid(name)
         return GraphNode(
             label=label,
             key_property=NODE_KEY_PROPERTY[label],
@@ -369,6 +380,8 @@ class GraphTransformer:
                     "entity_key": stable_id(slug(label), [name]),
                     "name": name,
                     "entity_type": "region" if label == "Country" else "location",
+                    "lat": centroid[0] if centroid else None,
+                    "lon": centroid[1] if centroid else None,
                     "valid_from": timestamp,
                     "first_seen_at": timestamp,
                     "record_ids": [record_id],
@@ -430,6 +443,11 @@ class GraphTransformer:
         gazetteer_type = str(metadata.get("type") or "").strip()
         if gazetteer_type:
             graph_label = ASSET_TYPE_TO_LABEL.get(slug(gazetteer_type), graph_label)
+        lat, lon = metadata.get("lat"), metadata.get("lon")
+        if lat is None and graph_label == "Country":
+            centroid = resolve_country_centroid(text)
+            if centroid:
+                lat, lon = centroid
         key_prop = NODE_KEY_PROPERTY[graph_label]
         key_value = stable_id(slug(graph_label), [text])
         return GraphNode(
@@ -442,8 +460,8 @@ class GraphTransformer:
                     "name": text,
                     "canonical_name": text,
                     "entity_type": spacy_label.lower() or "nlp_entity",
-                    "lat": metadata.get("lat"),
-                    "lon": metadata.get("lon"),
+                    "lat": lat,
+                    "lon": lon,
                     "valid_from": timestamp,
                     "first_seen_at": timestamp,
                     "record_ids": [record_id],

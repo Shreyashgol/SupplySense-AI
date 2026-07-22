@@ -29,6 +29,7 @@ from .queries import (
     QUERY_CACHED_JUSTIFICATIONS,
     QUERY_DECISION_RUN_BY_ID,
     QUERY_LATEST_DECISION_RUNS,
+    QUERY_SCENARIO_FOR_DECISION_RUN,
     QUERY_SCENARIO_ROWS_BY_IDS,
     QUERY_SEARCH_ASSETS,
     QUERY_UPSERT_AUDIT_LOG,
@@ -84,6 +85,50 @@ class RecommendationOutputRepository:
     def fetch_latest_decision_runs(self, limit: int = 20) -> list[dict[str, Any]]:
         """Return summary metadata for the most recent decision runs (UI pickers)."""
         return self.client.run_read(QUERY_LATEST_DECISION_RUNS, {"limit": limit})
+
+    def fetch_scenario_assumptions(self, decision_run_id: str) -> dict[str, Any] | None:
+        """Return the Part E scenario (with explicit, source-tagged assumptions
+        and their driver formula inputs) that fed a given Part F decision run —
+        the "scenario model fidelity" evaluation surface."""
+        rows = self.client.run_read(
+            QUERY_SCENARIO_FOR_DECISION_RUN, {"decision_run_id": decision_run_id}
+        )
+        if not rows or rows[0].get("sim") is None:
+            return None
+        sim = dict(rows[0]["sim"])
+        sources = _json_field(sim.get("assumption_sources_json"), {})
+        drivers = _json_field(sim.get("assumption_drivers_json"), {})
+        return {
+            "scenario_id": sim.get("scenario_id"),
+            "scenario_name": sim.get("scenario_name"),
+            "disruption_type": sim.get("disruption_type"),
+            "duration_days": sim.get("duration_days"),
+            "affected_assets": sim.get("affected_assets"),
+            "generated_at": sim.get("generated_at"),
+            "assumptions": {
+                "supply_shock_magnitude": {
+                    "value": safe_float(sim.get("supply_shock_magnitude")),
+                    "source": sources.get("supply_shock_magnitude", "unknown"),
+                },
+                "alternative_availability": {
+                    "value": safe_float(sim.get("alternative_availability")),
+                    "source": sources.get("alternative_availability", "unknown"),
+                },
+                "behavioral_response_factor": {
+                    "value": safe_float(sim.get("behavioral_response_factor")),
+                    "source": sources.get("behavioral_response_factor", "unknown"),
+                },
+            },
+            "drivers": {k: safe_float(v) for k, v in drivers.items()},
+            "aggregate_impact": {
+                "max_impact_score": safe_float(sim.get("max_impact_score")),
+                "average_supply_shortfall_pct": safe_float(sim.get("average_supply_shortfall_pct")),
+                "earliest_inventory_depletion_days": safe_float(sim.get("earliest_inventory_depletion_days")),
+                "max_delay_days": safe_float(sim.get("max_delay_days")),
+                "total_economic_impact_index": safe_float(sim.get("total_economic_impact_index")),
+                "confidence": safe_float(sim.get("confidence")),
+            },
+        }
 
     def fetch_cached_justifications(
         self, recommendation_ids: list[str]

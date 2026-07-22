@@ -9,9 +9,12 @@ import { RecommendationsList } from "../components/RecommendationsList";
 import { ScenarioComparisonView } from "../components/ScenarioComparisonView";
 import { AuditLogPanel } from "../components/AuditLogPanel";
 import { SystemRefreshPanel } from "../components/SystemRefreshPanel";
+import { PerformancePanel } from "../components/PerformancePanel";
+import { ScenarioAssumptionsPanel } from "../components/ScenarioAssumptionsPanel";
+import { DetectionAccuracyView } from "../components/DetectionAccuracyView";
 import { useRole } from "../context/RoleContext";
 
-type Tab = "action-plan" | "recommendations" | "comparison" | "new-scenario";
+type Tab = "action-plan" | "recommendations" | "comparison" | "detection-accuracy" | "new-scenario";
 
 export function Dashboard() {
   const { activeRole, loading, error } = useRole();
@@ -61,6 +64,7 @@ export function Dashboard() {
             />
           </div>
           <DecisionRunPicker selected={decisionRunId} onSelect={setDecisionRunId} refreshKey={refreshKey} />
+          <PerformancePanel />
           <AuditLogPanel />
         </div>
 
@@ -72,6 +76,7 @@ export function Dashboard() {
                   ["action-plan", "Executive Action Plan"],
                   ["recommendations", "Recommendations"],
                   ["comparison", "Scenario Comparison"],
+                  ["detection-accuracy", "Detection Accuracy"],
                 ] as [Tab, string][]
               ).map(([key, label]) => (
                 <button
@@ -99,9 +104,13 @@ export function Dashboard() {
             </button>
           </div>
 
+          {(tab === "action-plan" || tab === "recommendations") && (
+            <ScenarioAssumptionsPanel decisionRunId={decisionRunId} />
+          )}
           {tab === "action-plan" && <ExecutiveActionPlanBoard decisionRunId={decisionRunId} />}
           {tab === "recommendations" && <RecommendationsList decisionRunId={decisionRunId} />}
           {tab === "comparison" && <ScenarioComparisonView />}
+          {tab === "detection-accuracy" && <DetectionAccuracyView />}
           {tab === "new-scenario" && (
             <div className="max-w-xl">
               <ScenarioRunner

@@ -10,6 +10,15 @@ export interface RoleInfo {
   can_trigger_data_refresh: boolean;
 }
 
+export interface LatencyStats {
+  sample_count: number;
+  mean_seconds: number | null;
+  median_seconds: number | null;
+  p95_seconds: number | null;
+  min_seconds: number | null;
+  max_seconds: number | null;
+}
+
 export interface RefreshStatus {
   state: "idle" | "running" | "completed" | "failed";
   current_stage: string | null;
@@ -42,6 +51,9 @@ export interface AssetRiskAlert {
   persistence_factor: number;
   horizons: HorizonProbability[];
   drivers: Record<string, number>;
+  lat: number | null;
+  lon: number | null;
+  geo_evidence: "resolved" | "unresolved";
 }
 
 export interface RiskAlertReport {
@@ -57,6 +69,14 @@ export interface PolicyValidation {
   checks?: string[];
   warnings?: string[];
   blockers?: string[];
+}
+
+export interface ConcreteAlternative {
+  asset_id: string;
+  name: string;
+  label: string;
+  distance_km: number | null;
+  graph_connectivity: number;
 }
 
 export interface Recommendation {
@@ -78,6 +98,7 @@ export interface Recommendation {
   is_ambiguous?: boolean | null;
   generated_by?: string | null;
   generated_at?: string | null;
+  concrete_alternatives?: ConcreteAlternative[];
 }
 
 export interface ActionPlanCategory {
@@ -139,6 +160,57 @@ export interface AssetOption {
   asset_id: string;
   asset_label: string;
   asset_name: string;
+}
+
+export interface AssumptionField {
+  value: number;
+  source: string;
+}
+
+export interface ScenarioAssumptions {
+  scenario_id: string;
+  scenario_name: string;
+  disruption_type: string;
+  duration_days: number;
+  affected_assets: string[];
+  generated_at: string;
+  assumptions: {
+    supply_shock_magnitude: AssumptionField;
+    alternative_availability: AssumptionField;
+    behavioral_response_factor: AssumptionField;
+  };
+  drivers: Record<string, number>;
+  aggregate_impact: {
+    max_impact_score: number;
+    average_supply_shortfall_pct: number;
+    earliest_inventory_depletion_days: number;
+    max_delay_days: number;
+    total_economic_impact_index: number;
+    confidence: number;
+  };
+}
+
+export interface DetectorMetrics {
+  name: string;
+  sample_count: number;
+  positives_in_ground_truth: number;
+  true_positives: number;
+  false_positives: number;
+  true_negatives: number;
+  false_negatives: number;
+  precision: number | null;
+  recall: number | null;
+  false_negative_rate: number | null;
+  f1: number | null;
+  accuracy: number;
+}
+
+export interface DetectionAccuracyReport {
+  ground_truth_definition: string;
+  sample_count: number;
+  compound_model: DetectorMetrics;
+  single_sensor_baselines: DetectorMetrics[];
+  lead_time_note: string;
 }
 
 export interface AuditLogEntry {

@@ -38,7 +38,9 @@ RETURN
     latest.risk_score AS risk_score,
     latest.risk_tier AS risk_tier,
     latest.predicted_at AS predicted_at,
-    latest.model_version AS model_version
+    latest.model_version AS model_version,
+    asset.lat AS lat,
+    asset.lon AS lon
 ORDER BY latest.risk_score DESC
 """
 
@@ -80,6 +82,17 @@ RETURN
     run.recommendation_count AS recommendation_count
 ORDER BY run.generated_at DESC
 LIMIT $limit
+"""
+
+# ── Scenario model fidelity (assumptions explicit & testable) ────────────────
+# Fetch the Part E ScenarioSimulation feeding a given Part F decision run, so
+# every assumption (and whether it was analyst-provided or graph-estimated,
+# plus the exact graph signals used to estimate it) can be inspected later —
+# not just at the moment the scenario was first run.
+# Parameters: $decision_run_id
+QUERY_SCENARIO_FOR_DECISION_RUN = """
+MATCH (sim:ScenarioSimulation)-[:HAS_DECISION_RUN]->(run:DecisionRun {decision_run_id: $decision_run_id})
+RETURN sim
 """
 
 # ── Scenario Comparison (what-if analysis) ────────────────────────────────────

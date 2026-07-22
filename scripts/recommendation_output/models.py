@@ -44,6 +44,8 @@ class AssetRiskAlert:
     persistence_factor: float
     horizons: list[HorizonProbability]
     drivers: dict[str, float] = field(default_factory=dict)
+    lat: float | None = None
+    lon: float | None = None
 
     def summary(self) -> dict[str, Any]:
         return {
@@ -60,6 +62,9 @@ class AssetRiskAlert:
             "persistence_factor": round(self.persistence_factor, 4),
             "horizons": [h.summary() for h in self.horizons],
             "drivers": {k: round(v, 4) for k, v in self.drivers.items()},
+            "lat": round(self.lat, 4) if self.lat is not None else None,
+            "lon": round(self.lon, 4) if self.lon is not None else None,
+            "geo_evidence": "resolved" if self.lat is not None else "unresolved",
         }
 
 

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Sparkles, RefreshCw, ShieldCheck, ShieldAlert, AlertOctagon } from "lucide-react";
+import { Sparkles, RefreshCw, ShieldCheck, ShieldAlert, AlertOctagon, Loader2 } from "lucide-react";
 import { fetchRecommendations, generateRecommendations } from "../api/client";
 import { useRole } from "../context/RoleContext";
+import { describeCost, describePriority, priorityBadgeClass } from "../utils/qualitative";
 import type { Recommendation } from "../types";
 
 function statusBadge(status: string) {
@@ -32,8 +33,14 @@ export function RecommendationsList({ decisionRunId }: Props) {
       .finally(() => setLoading(false));
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(load, [decisionRunId, activeRole?.role_key]);
+  // Clear stale recommendations immediately on change so switching role or
+  // decision run never leaves the previous (possibly wrong-role) list on
+  // screen while the new one is still loading.
+  useEffect(() => {
+    setRecs([]);
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [decisionRunId, activeRole?.role_key]);
 
   const generate = async () => {
     if (!decisionRunId) return;
@@ -73,9 +80,10 @@ export function RecommendationsList({ decisionRunId }: Props) {
             <button
               onClick={generate}
               disabled={generating}
-              className="text-xs px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-300 hover:bg-amber-500/30 disabled:opacity-40"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-300 hover:bg-amber-500/30 disabled:opacity-40"
             >
-              {generating ? "Generating via Groq…" : "Generate Justifications"}
+              {generating && <Loader2 size={12} className="animate-spin" />}
+              {generating ? "Writing plain-English summaries…" : "Generate Justifications"}
             </button>
           )}
           <button onClick={load} className="text-gray-400 hover:text-white">
@@ -86,35 +94,65 @@ export function RecommendationsList({ decisionRunId }: Props) {
 
       {error && <div className="text-sm text-red-400 mb-3">{error}</div>}
 
-      <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
-        {recs.map((rec) => (
-          <div key={rec.recommendation_id} className="bg-white/5 border border-white/10 rounded-lg p-3">
-            <div className="flex justify-between items-start gap-2 mb-1.5">
-              <div className="font-medium text-sm">{rec.title}</div>
-              {statusBadge(rec.policy_validation.status)}
+      {loading && recs.length === 0 && (
+        <div className="flex items-center justify-center gap-2 text-sm text-gray-500 py-10">
+          <Loader2 size={16} className="animate-spin" /> Loading recommendations…
+        </div>
+      )}
+
+      {!loading && (
+        <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+          {recs.map((rec) => (
+            <div key={rec.recommendation_id} className="bg-white/5 border border-white/10 rounded-lg p-3">
+              <div className="flex justify-between items-start gap-2 mb-1.5">
+                <div className="font-medium text-sm">{rec.title}</div>
+                {statusBadge(rec.policy_validation.status)}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                <span className={`text-[11px] px-2 py-0.5 rounded-full border ${priorityBadgeClass(rec.rank_score)}`}>
+                  {describePriority(rec.rank_score)}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {rec.target_asset_name} ({rec.target_asset_label})
+                </span>
+                {rec.cost_index !== undefined && (
+                  <span className="text-xs text-gray-500">· {describeCost(rec.cost_index)}</span>
+                )}
+              </div>
+              {rec.rationale_text ? (
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  {rec.rationale_text}{" "}
+                  {rec.is_ambiguous && (
+                    <span className="text-amber-400 font-medium">(flagged for review)</span>
+                  )}
+                </p>
+              ) : (
+                <p className="text-xs text-gray-600 italic">No plain-English summary generated yet.</p>
+              )}
+              {rec.concrete_alternatives && rec.concrete_alternatives.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-white/10">
+                  <div className="text-[10px] uppercase tracking-wide text-gray-500 mb-1">
+                    Real alternates available
+                  </div>
+                  <ul className="space-y-0.5">
+                    {rec.concrete_alternatives.map((alt) => (
+                      <li key={alt.asset_id} className="text-xs text-gray-300 flex justify-between">
+                        <span>{alt.name}</span>
+                        <span className="text-gray-500">
+                          {alt.distance_km !== null ? `${alt.distance_km.toFixed(0)} km away` : alt.label}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-            <div className="text-xs text-gray-500 mb-2">
-              {rec.target_asset_name} ({rec.target_asset_label}) · rank {rec.rank_score.toFixed(3)} · confidence{" "}
-              {(rec.confidence * 100).toFixed(0)}%
-              {rec.cost_index !== undefined && <> · cost {rec.cost_index.toFixed(2)}</>}
-            </div>
-            {rec.rationale_text ? (
-              <p className="text-xs text-gray-300 italic leading-relaxed">
-                {rec.rationale_text}{" "}
-                {rec.is_ambiguous && <span className="text-amber-400 not-italic font-medium">(flagged for review)</span>}
-              </p>
-            ) : (
-              <p className="text-xs text-gray-600 italic">No justification generated yet.</p>
-            )}
-            {rec.generated_by && (
-              <div className="text-[10px] text-gray-600 mt-1">via {rec.generated_by}</div>
-            )}
-          </div>
-        ))}
-        {!loading && recs.length === 0 && (
-          <div className="text-sm text-gray-500 text-center py-8">No recommendations for this decision run.</div>
-        )}
-      </div>
+          ))}
+          {recs.length === 0 && (
+            <div className="text-sm text-gray-500 text-center py-8">No recommendations for this decision run.</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

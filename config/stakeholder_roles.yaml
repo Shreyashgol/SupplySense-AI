@@ -115,7 +115,12 @@ roles:
     organizations: ["Financial Institutions & Insurers"]
     allowed_views: ["risk_alerts", "action_plan", "justified_recommendations", "scenario_comparison"]
     asset_label_scope: "*"
-    action_category_scope: "*"
+    # Banks/insurers don't execute reroute_shipping, release_strategic_inventory,
+    # or policy_escalation themselves — those are operational/government actions.
+    # Procurement actions (spot_procurement, activate_alternate_supplier) are the
+    # only category that maps to something a financial institution actually does
+    # (financing, letters of credit, underwriting alternate-supplier contracts).
+    action_category_scope: ["Procurement"]
     can_view_compliance_details: false
     can_view_financial_details: true
     can_generate_justifications: false

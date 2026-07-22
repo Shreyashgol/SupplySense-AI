@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { GitCompare, RefreshCw } from "lucide-react";
+import { GitCompare, Loader2, RefreshCw } from "lucide-react";
 import { compareScenarios, fetchDecisionRuns } from "../api/client";
 import { useRole } from "../context/RoleContext";
 import type { DecisionRunSummary, ScenarioComparisonResult } from "../types";
@@ -7,14 +7,24 @@ import type { DecisionRunSummary, ScenarioComparisonResult } from "../types";
 export function ScenarioComparisonView() {
   const { activeRole } = useRole();
   const [runs, setRuns] = useState<DecisionRunSummary[]>([]);
+  const [runsLoading, setRunsLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [result, setResult] = useState<ScenarioComparisonResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDecisionRuns(30).then((data) => setRuns(data.decision_runs));
+    fetchDecisionRuns(30)
+      .then((data) => setRuns(data.decision_runs))
+      .finally(() => setRunsLoading(false));
   }, []);
+
+  // Field redaction depends on role — drop any previously-computed
+  // comparison so a role switch never shows another role's view of the data.
+  useEffect(() => {
+    setResult(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRole?.role_key]);
 
   const toggle = (scenarioId: string) => {
     setSelectedIds((prev) =>
@@ -51,6 +61,12 @@ export function ScenarioComparisonView() {
         </div>
       </div>
 
+      {runsLoading && (
+        <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
+          <Loader2 size={13} className="animate-spin" /> Loading scenarios…
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2 mb-4">
         {uniqueScenarios.map((run) => (
           <button
@@ -78,7 +94,13 @@ export function ScenarioComparisonView() {
 
       {error && <div className="text-sm text-red-400 mb-3">{error}</div>}
 
-      {result && (
+      {loading && (
+        <div className="flex items-center justify-center gap-2 text-sm text-gray-500 py-10">
+          <Loader2 size={16} className="animate-spin" /> Comparing scenarios…
+        </div>
+      )}
+
+      {!loading && result && (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>

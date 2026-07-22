@@ -173,6 +173,8 @@ class HorizonRiskEngine:
             persistence_factor=persistence,
             horizons=horizons,
             drivers=drivers,
+            lat=_safe_coordinate(row.get("lat")),
+            lon=_safe_coordinate(row.get("lon")),
         )
 
     def _momentum_factor(self, feature: AssetFeatures | None) -> float:
@@ -247,3 +249,13 @@ def _implied_hazard_rate(risk_score: float, window_days: float) -> float:
     """Invert the constant-hazard CDF P = 1 - exp(-lambda*T) for lambda."""
     bounded_score = min(max(risk_score, _EPSILON), 1.0 - _EPSILON)
     return -math.log(1.0 - bounded_score) / max(window_days, _EPSILON)
+
+
+def _safe_coordinate(value: object) -> float | None:
+    """Coerce a Neo4j coordinate property to float, or None if absent/invalid."""
+    if value is None:
+        return None
+    try:
+        return float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None

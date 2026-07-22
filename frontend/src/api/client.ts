@@ -3,10 +3,13 @@ import type {
   AssetOption,
   AuditLogEntry,
   DecisionRunSummary,
+  DetectionAccuracyReport,
   ExecutiveActionPlan,
+  LatencyStats,
   RefreshStatus,
   RiskAlertReport,
   RoleInfo,
+  ScenarioAssumptions,
   ScenarioComparisonResult,
 } from "../types";
 
@@ -44,6 +47,13 @@ export async function fetchDecisionRuns(limit = 20): Promise<{ decision_runs: De
 export async function fetchActionPlan(decisionRunId: string): Promise<ExecutiveActionPlan> {
   const res = await apiClient.get<ExecutiveActionPlan>(
     `/api/v1/decisions/${decisionRunId}/action-plan`
+  );
+  return res.data;
+}
+
+export async function fetchScenarioAssumptions(decisionRunId: string): Promise<ScenarioAssumptions> {
+  const res = await apiClient.get<ScenarioAssumptions>(
+    `/api/v1/decisions/${decisionRunId}/assumptions`
   );
   return res.data;
 }
@@ -107,6 +117,11 @@ export async function quickActionPlan(
   return res.data;
 }
 
+export async function fetchPerformance(): Promise<LatencyStats> {
+  const res = await apiClient.get<LatencyStats>("/api/v1/system/performance");
+  return res.data;
+}
+
 export async function fetchRefreshStatus(): Promise<RefreshStatus> {
   const res = await apiClient.get<RefreshStatus>("/api/v1/system/refresh");
   return res.data;
@@ -114,6 +129,11 @@ export async function fetchRefreshStatus(): Promise<RefreshStatus> {
 
 export async function triggerRefresh(): Promise<RefreshStatus> {
   const res = await apiClient.post<RefreshStatus>("/api/v1/system/refresh");
+  return res.data;
+}
+
+export async function fetchDetectionAccuracy(): Promise<DetectionAccuracyReport> {
+  const res = await apiClient.get<DetectionAccuracyReport>("/api/v1/system/detection-accuracy");
   return res.data;
 }
 

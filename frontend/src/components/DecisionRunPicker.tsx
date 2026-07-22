@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ListTree, RefreshCw } from "lucide-react";
+import { ListTree, Loader2, RefreshCw } from "lucide-react";
 import { fetchDecisionRuns } from "../api/client";
 import type { DecisionRunSummary } from "../types";
 
@@ -40,6 +40,11 @@ export function DecisionRunPicker({ selected, onSelect, refreshKey }: Props) {
         </button>
       </div>
       <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
+        {loading && runs.length === 0 && (
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-500 py-6">
+            <Loader2 size={13} className="animate-spin" /> Loading decision runs…
+          </div>
+        )}
         {runs.map((run) => (
           <button
             key={run.decision_run_id}

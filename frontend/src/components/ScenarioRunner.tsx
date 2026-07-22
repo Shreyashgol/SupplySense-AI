@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PlayCircle } from "lucide-react";
+import { Loader2, PlayCircle } from "lucide-react";
 import { optimizeDecision } from "../api/client";
 import { AssetPicker } from "./AssetPicker";
 import type { AssetOption } from "../types";
@@ -79,9 +79,10 @@ export function ScenarioRunner({ onCompleted }: Props) {
       <button
         onClick={submit}
         disabled={submitting || assets.length === 0}
-        className="w-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 rounded-lg py-2 text-xs font-medium disabled:opacity-40 hover:bg-emerald-500/30 transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 rounded-lg py-2 text-xs font-medium disabled:opacity-40 hover:bg-emerald-500/30 transition-colors"
       >
-        {submitting ? "Running Part E + F…" : "Simulate + Optimize"}
+        {submitting && <Loader2 size={13} className="animate-spin" />}
+        {submitting ? "Simulating impact & building recommendations…" : "Simulate + Optimize"}
       </button>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ClipboardPlus, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
+import { AlertTriangle, ClipboardPlus, Loader2, MapPin, RefreshCw, ShieldAlert } from "lucide-react";
 import { fetchRiskAlerts, quickActionPlan } from "../api/client";
 import { useRole } from "../context/RoleContext";
 import type { RiskAlertReport } from "../types";
@@ -21,6 +21,7 @@ export function RiskAlertsPanel({ onPlanGenerated }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [lastResponseTime, setLastResponseTime] = useState<number | null>(null);
 
   const load = () => {
     if (!activeRole) return;
@@ -32,7 +33,13 @@ export function RiskAlertsPanel({ onPlanGenerated }: Props) {
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, [activeRole?.role_key]);
+  // Clear stale data the instant the role changes so a switch to a more
+  // restricted role never briefly shows the previous role's alerts.
+  useEffect(() => {
+    setReport(null);
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRole?.role_key]);
 
   const sorted = useMemo(() => {
     if (!report) return [];
@@ -48,6 +55,7 @@ export function RiskAlertsPanel({ onPlanGenerated }: Props) {
     setError(null);
     try {
       const data = await quickActionPlan(assetId, assetLabel, assetName, horizon);
+      setLastResponseTime(data.response_time_seconds ?? null);
       onPlanGenerated?.(data.decision.decision_run_id);
     } catch (e: any) {
       setError(e?.response?.data?.detail ?? "Could not generate an action plan for this asset.");
@@ -94,6 +102,12 @@ export function RiskAlertsPanel({ onPlanGenerated }: Props) {
         ))}
       </div>
 
+      {lastResponseTime !== null && (
+        <div className="text-[11px] text-emerald-400 mb-2">
+          Last action plan generated in {lastResponseTime.toFixed(2)}s (signal → recommendation)
+        </div>
+      )}
+
       {error && <div className="text-sm text-red-400 mb-2">{error}</div>}
 
       <div className="flex-1 overflow-y-auto space-y-3 pr-1">
@@ -119,6 +133,23 @@ export function RiskAlertsPanel({ onPlanGenerated }: Props) {
               <div className="flex items-center justify-between mt-2 text-xs text-gray-400">
                 <span>P({horizon}d) = {hp ? (hp.probability * 100).toFixed(1) : "-"}%</span>
                 <span>base risk {alert.base_risk_tier} ({(alert.base_risk_score * 100).toFixed(0)}%)</span>
+              </div>
+              <div className="mt-1 text-[11px] text-gray-500">
+                {alert.geo_evidence === "resolved" && alert.lat !== null && alert.lon !== null ? (
+                  <a
+                    href={`https://www.openstreetmap.org/?mlat=${alert.lat}&mlon=${alert.lon}#map=5/${alert.lat}/${alert.lon}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 hover:text-gray-300"
+                  >
+                    <MapPin size={10} />
+                    {alert.lat.toFixed(2)}°, {alert.lon.toFixed(2)}°
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-1 opacity-60">
+                    <MapPin size={10} /> No geospatial evidence for this asset type
+                  </span>
+                )}
               </div>
               {canGeneratePlan && (
                 <button
