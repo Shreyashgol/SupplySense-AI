@@ -1,0 +1,31 @@
+# Git & IDE files
+.git
+.gitignore
+.gemini
+.idea
+.vscode
+
+# Python virtual environment & cache
+venv/
+venv313/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local raw & processed data stores (use cloud storage / Neo4j in prod)
+data/raw/
+data/processed/
+data/datalake/
+logs/
+
+# Frontend build & node modules
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Temporary / scratch scripts
+scratch/
+*_debug.py
+*_test_scratch.py
