@@ -11,6 +11,7 @@ class HealthResponse(BaseModel):
     status: str
     version: str
     timestamp: str
+    database: str
 
 
 class RoleInfo(BaseModel):

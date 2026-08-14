@@ -121,7 +121,7 @@ def create_app() -> FastAPI:
         LOGGER.exception("Unhandled exception: %s", exc)
         return JSONResponse(status_code=500, content={"detail": "Internal server error", "error": str(exc)})
 
-    @app.api_route("/health", methods=["GET", "HEAD"], response_model=HealthResponse)
+    @app.get("/health", response_model=HealthResponse)
     async def health_check():
         return HealthResponse(status="healthy", version="1.0.0", timestamp=_now())
 

@@ -73,8 +73,13 @@ class RiskPredictionNeo4jClient:
 
     # ── Connectivity ──────────────────────────────────────────────────────────
 
-    def verify_connectivity(self) -> None:
-        """Verify Neo4j connectivity. Exits gracefully on failure with hints."""
+    def verify_connectivity(self, *, exit_on_failure: bool = True) -> bool:
+        """Verify Neo4j connectivity.
+
+        CLI entrypoints keep the historical fail-fast behavior. Long-running
+        services can pass ``exit_on_failure=False`` so the process can still
+        bind a port and expose health diagnostics when Neo4j is unavailable.
+        """
         try:
             self._driver.verify_connectivity()
             LOGGER.info(
@@ -82,8 +87,8 @@ class RiskPredictionNeo4jClient:
                 self.config.neo4j_uri,
                 self.config.neo4j_database or "default",
             )
+            return True
         except Exception as exc:
-            import sys
             LOGGER.error(
                 "Failed to connect to Neo4j database or retrieve routing information.\n"
                 "Troubleshooting hints:\n"
@@ -96,7 +101,11 @@ class RiskPredictionNeo4jClient:
                 self.config.neo4j_user,
                 exc,
             )
-            sys.exit(1)
+            if exit_on_failure:
+                import sys
+
+                sys.exit(1)
+            return False
 
     # ── Read operations ───────────────────────────────────────────────────────
 

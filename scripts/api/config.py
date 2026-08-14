@@ -3,7 +3,8 @@
 Environment Variables
 ---------------------
 API_HOST                 Bind host                       (default: 0.0.0.0)
-API_PORT                 Bind port                        (default: 8000)
+API_PORT                 Bind port                        (default: PORT or 8000)
+PORT                     Platform-provided bind port      (used when API_PORT is unset)
 API_WORKERS              Uvicorn worker count             (default: 1)
 API_LOG_LEVEL            Python log level                 (default: INFO)
 API_CORS_ORIGINS         Comma-separated allowed origins, or "*" (default: *)
@@ -37,7 +38,7 @@ class ApiConfig:
         env = _merged_env(BASE_DIR / ".env")
         return cls(
             host=env.get("API_HOST", "0.0.0.0"),
-            port=int(env.get("API_PORT", "8000")),
+            port=int(env.get("API_PORT") or env.get("PORT", "8000")),
             workers=int(env.get("API_WORKERS", "1")),
             log_level=env.get("API_LOG_LEVEL", "INFO"),
             cors_origins=_parse_cors_origins(env.get("API_CORS_ORIGINS", "*")),
