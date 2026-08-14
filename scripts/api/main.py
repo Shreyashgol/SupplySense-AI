@@ -122,6 +122,7 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=500, content={"detail": "Internal server error", "error": str(exc)})
 
     @app.get("/health", response_model=HealthResponse)
+    @app.head("/health", include_in_schema=False)
     async def health_check():
         return HealthResponse(status="healthy", version="1.0.0", timestamp=_now())
 
