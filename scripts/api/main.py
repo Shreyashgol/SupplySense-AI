@@ -24,7 +24,7 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -122,9 +122,12 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=500, content={"detail": "Internal server error", "error": str(exc)})
 
     @app.get("/health", response_model=HealthResponse)
-    @app.head("/health", include_in_schema=False)
     async def health_check():
         return HealthResponse(status="healthy", version="1.0.0", timestamp=_now())
+
+    @app.head("/health", include_in_schema=False)
+    async def health_check_head():
+        return Response(status_code=200)
 
     @app.get("/api/v1/roles", response_model=list[RoleInfo])
     async def list_roles():
