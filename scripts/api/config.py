@@ -80,6 +80,6 @@ def _read_dotenv(path: Path) -> dict[str, str]:
 
 
 def _parse_cors_origins(value: str) -> list[str]:
-    if value == "*":
+    if not value or value == "*":
         return ["*"]
-    return [origin.strip() for origin in value.split(",") if origin.strip()]
+    return [origin.strip().rstrip("/") for origin in value.split(",") if origin.strip()]
