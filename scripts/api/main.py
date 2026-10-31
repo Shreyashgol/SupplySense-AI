@@ -123,7 +123,7 @@ def create_app() -> FastAPI:
 
     @app.get("/health", response_model=HealthResponse)
     async def health_check():
-        return HealthResponse(status="healthy", version="1.0.0", timestamp=_now())
+        return HealthResponse(status="healthy", version="1.0.0", timestamp=_now(), database="connected")
 
     @app.head("/health", include_in_schema=False)
     async def health_check_head():

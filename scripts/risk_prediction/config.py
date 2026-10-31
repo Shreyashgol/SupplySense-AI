@@ -109,7 +109,7 @@ class RiskPredictionConfig:
         return cls(
             # Neo4j connection (reused from Parts A–C)
             neo4j_uri=env.get("NEO4J_URI", ""),
-            neo4j_user=env.get("NEO4J_USER", ""),
+            neo4j_user=env.get("NEO4J_USER") or env.get("NEO4J_USERNAME", ""),
             neo4j_password=env.get("NEO4J_PASSWORD", ""),
             neo4j_database=env.get("NEO4J_DATABASE") or None,
             # Driver tuning

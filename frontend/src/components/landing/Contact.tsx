@@ -10,8 +10,9 @@ export const Contact: React.FC = () => {
     const form = e.currentTarget;
     const data = new FormData(form);
 
+    const endpoint = import.meta.env.VITE_FORMSPREE_URL || 'https://formspree.io/f/YOUR_ENDPOINT_ID';
     try {
-      const response = await fetch('https://formspree.io/f/YOUR_ENDPOINT_ID', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         body: data,
         headers: {

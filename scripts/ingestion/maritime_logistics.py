@@ -129,7 +129,8 @@ async def consume_ais_stream():
         "FilterMessageTypes": ["PositionReport"]
     }
     
-    aggregation_interval = 15 * 60 # 15 minutes
+    is_continuous = os.getenv("AIS_STREAM_CONTINUOUS", "").lower() == "true"
+    aggregation_interval = 15 * 60 if is_continuous else int(os.getenv("AIS_BATCH_DURATION_SECONDS", "30"))
     # State mapping: MMSI -> {speed, region}
     # Reset every interval
     vessel_state = {}
@@ -179,6 +180,9 @@ async def consume_ais_stream():
 
                         # Also fetch canal advisories every 15 minutes
                         fetch_canal_advisories()
+                        if not is_continuous:
+                            logging.info("AIS batch collection complete. Finishing maritime ingestion.")
+                            break
 
                 except asyncio.TimeoutError:
                     # No messages in 60s, keep waiting
@@ -188,6 +192,9 @@ async def consume_ais_stream():
                         vessel_state = {}
                         last_flush_time = current_time
                         fetch_canal_advisories()
+                        if not is_continuous:
+                            logging.info("AIS batch collection complete on timeout. Finishing maritime ingestion.")
+                            break
 
     except Exception as e:
         logging.error(f"WebSocket connection failed: {e}")
