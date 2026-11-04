@@ -16,6 +16,7 @@ payload according to ``config/stakeholder_roles.yaml`` — see auth.py.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import statistics
@@ -75,6 +76,37 @@ def configure_logging(level: str) -> None:
     )
 
 
+async def _neo4j_keepalive_loop(client: RiskPredictionNeo4jClient, interval_seconds: int = 86400) -> None:
+    """Periodically execute a lightweight write to keep Neo4j Aura Free from auto-pausing.
+
+    Aura Free auto-pauses after 72 hours of no write operations. A small MERGE every 24h
+    resets this inactivity timer and keeps the database permanently active.
+    """
+    LOGGER.info("Neo4j keepalive task started (interval: %ds).", interval_seconds)
+    # Wait 5 seconds after startup for initial warm-up
+    await asyncio.sleep(5)
+    while True:
+        try:
+            query = (
+                "MERGE (k:KeepAlive {id: 1}) "
+                "SET k.lastTouched = datetime(), k.service = 'SupplySense-AI' "
+                "RETURN k.lastTouched AS touched"
+            )
+            client.run_write(query)
+            LOGGER.info("Neo4j keepalive write succeeded (KeepAlive touched).")
+        except asyncio.CancelledError:
+            LOGGER.info("Neo4j keepalive task cancelled.")
+            break
+        except Exception as exc:
+            LOGGER.warning("Neo4j keepalive write failed: %s", exc)
+
+        try:
+            await asyncio.sleep(interval_seconds)
+        except asyncio.CancelledError:
+            LOGGER.info("Neo4j keepalive task cancelled during sleep.")
+            break
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     config = ApiConfig.from_env()
@@ -85,15 +117,24 @@ async def lifespan(app: FastAPI):
     ro_config = RecommendationOutputConfig.from_env()
     ro_config.validate()
     client = RiskPredictionNeo4jClient(ro_config.decision_config.scenario_config.risk_config)
-    client.verify_connectivity()
+    client.verify_connectivity(exit_on_failure=False)
 
     app.state.ro_config = ro_config
     app.state.client = client
     app.state.repository = RecommendationOutputRepository(ro_config, client)
     LOGGER.info("SupplySense-AI Part G/H API server starting up.")
-    yield
-    client.close()
-    LOGGER.info("SupplySense-AI Part G/H API server shut down.")
+
+    keepalive_task = asyncio.create_task(_neo4j_keepalive_loop(client, interval_seconds=86400))
+    try:
+        yield
+    finally:
+        keepalive_task.cancel()
+        try:
+            await keepalive_task
+        except asyncio.CancelledError:
+            pass
+        client.close()
+        LOGGER.info("SupplySense-AI Part G/H API server shut down.")
 
 
 def create_app() -> FastAPI:
